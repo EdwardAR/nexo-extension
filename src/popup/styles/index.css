@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-card: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+  }
+
+  .dark {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-color: #334155;
+  }
+
+  body {
+    @apply m-0 p-0 font-sans;
+    width: 380px;
+    min-height: 480px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply w-full px-4 py-2.5 rounded-lg font-medium text-sm
+      bg-vault-600 hover:bg-vault-700
+      dark:bg-vault-500 dark:hover:bg-vault-600
+      text-white transition-all duration-150
+      focus:outline-none focus:ring-2 focus:ring-vault-500 focus:ring-offset-2
+      dark:focus:ring-offset-gray-900
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply px-3 py-1.5 rounded-lg text-sm font-medium
+      text-gray-600 hover:bg-gray-100
+      dark:text-gray-400 dark:hover:bg-gray-800
+      transition-all duration-150
+      focus:outline-none focus:ring-2 focus:ring-gray-300;
+  }
+
+  .btn-danger {
+    @apply px-3 py-1.5 rounded-lg text-sm font-medium
+      text-red-600 hover:bg-red-50
+      dark:text-red-400 dark:hover:bg-red-950
+      transition-all duration-150
+      focus:outline-none focus:ring-2 focus:ring-red-300;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2.5 rounded-lg text-sm
+      bg-white dark:bg-gray-800
+      border border-gray-200 dark:border-gray-700
+      text-gray-900 dark:text-gray-100
+      placeholder-gray-400 dark:placeholder-gray-500
+      focus:outline-none focus:ring-2 focus:ring-vault-500 focus:border-transparent
+      transition-all duration-150;
+  }
+
+  .card {
+    @apply rounded-xl p-3
+      bg-white dark:bg-gray-800
+      border border-gray-100 dark:border-gray-700
+      shadow-sm hover:shadow-md
+      transition-all duration-200;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/40 dark:bg-black/60
+      flex items-center justify-center z-50
+      animate-fade-in;
+  }
+
+  .modal-content {
+    @apply bg-white dark:bg-gray-800
+      rounded-2xl p-6 mx-4 w-full max-w-sm
+      shadow-2xl border border-gray-100 dark:border-gray-700
+      animate-scale-in;
+  }
+}
