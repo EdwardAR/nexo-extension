@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import type { PasswordEntry } from './types'
 import { useVault } from './hooks/useVault'
 import { useTheme } from './hooks/useTheme'
@@ -17,18 +17,6 @@ export default function App() {
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [viewingEntry, setViewingEntry] = useState<PasswordEntry | null>(null)
-
-  // Listen for external lock messages (from service worker autolock)
-  useEffect(() => {
-    const handleExternalLock = async () => {
-      // When receiving SESSION_LOCKED from service worker, trigger lock
-      lock()
-      addToast('Session expired', 'info')
-    }
-
-    // We rely on useVault's listener, but this provides feedback
-    return () => {}
-  }, [lock, addToast])
 
   const handleUnlock = useCallback(
     async (password: string) => {
