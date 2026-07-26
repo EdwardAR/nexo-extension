@@ -24,22 +24,22 @@ export function PasswordCard({ entry, onView, onDelete }: PasswordCardProps) {
   const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
 
   return (
-    <div className="card group animate-slide-up">
+    <div className="card group animate-slide-up hover:border-vault-200 dark:hover:border-vault-800/50 hover:shadow-md cursor-pointer transition-all">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
           <img
             src={favicon}
             alt=""
-            className="w-5 h-5"
+            className="w-6 h-6"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none'
-              ;(e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-xs font-bold text-gray-400">' + domain[0].toUpperCase() + '</span>'
+              ;(e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-xs font-bold bg-gradient-to-br from-vault-500 to-vault-700 text-white w-full h-full flex items-center justify-center rounded-lg">' + domain[0].toUpperCase() + '</span>'
             }}
           />
         </div>
 
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onView(entry)}>
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-vault-600 dark:group-hover:text-vault-400 transition-colors">
             {entry.username}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -47,27 +47,27 @@ export function PasswordCard({ entry, onView, onDelete }: PasswordCardProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
           <button
             onClick={() => copyToClipboard(entry.username, 'Username')}
-            className="btn-ghost p-1.5"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-vault-600 dark:hover:text-vault-400 transition-colors"
             title="Copy username"
           >
-            <Copy className="w-3.5 h-3.5" />
+            <Copy className="w-4 h-4" />
           </button>
           <button
             onClick={() => onView(entry)}
-            className="btn-ghost p-1.5"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:text-vault-600 dark:hover:text-vault-400 transition-colors"
             title="View password"
           >
-            <Eye className="w-3.5 h-3.5" />
+            <Eye className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(entry.id)}
-            className="btn-ghost p-1.5 hover:!text-red-500"
+            className="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
             title="Delete"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>

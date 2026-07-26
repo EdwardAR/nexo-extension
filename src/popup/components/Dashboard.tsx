@@ -33,30 +33,36 @@ export function Dashboard({
 
   return (
     <div className="flex flex-col h-screen">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-vault-600 dark:text-vault-400" />
-          <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Password Vault
-          </h1>
-          <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
-            {entries.length}
-          </span>
+      <header className="bg-gradient-to-r from-vault-600 to-vault-700 dark:from-vault-800 dark:to-vault-900 px-4 py-4 shadow-md">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/20 backdrop-blur">
+              <ShieldCheck className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-white">
+                Password Vault
+              </h1>
+              <p className="text-xs text-white/70">
+                {entries.length} {entries.length === 1 ? 'password' : 'passwords'} saved
+              </p>
+            </div>
+          </div>
+          <button onClick={onLock} className="p-2 hover:bg-white/20 rounded-lg transition-colors" title="Lock vault">
+            <LogOut className="w-5 h-5 text-white" />
+          </button>
         </div>
-        <button onClick={onLock} className="btn-ghost p-1.5" title="Lock vault">
-          <LogOut className="w-4 h-4" />
-        </button>
       </header>
 
-      <div className="px-4 pt-3 pb-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="px-4 py-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-vault-600 dark:group-focus-within:text-vault-400 transition-colors" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search passwords..."
-            className="input-field pl-9"
+            placeholder="Search by site or username..."
+            className="input-field pl-10 pr-4 bg-white dark:bg-gray-700"
             autoFocus
           />
         </div>

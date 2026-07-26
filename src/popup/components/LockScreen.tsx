@@ -24,21 +24,21 @@ export function LockScreen({ onUnlock, loading }: LockScreenProps) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6 py-8 animate-fade-in">
-      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-vault-100 dark:bg-vault-900/50 mb-4">
-        <ShieldCheck className="w-7 h-7 text-vault-600 dark:text-vault-400" />
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 py-8 animate-fade-in bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="flex items-center justify-center w-16 h-16 rounded-3xl bg-gradient-to-br from-vault-500 to-vault-700 mb-6 shadow-lg shadow-vault-500/30">
+        <ShieldCheck className="w-8 h-8 text-white" />
       </div>
 
-      <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
         Password Vault
       </h1>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 text-center">
-        Enter your master password to unlock
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-10 text-center max-w-xs">
+        Secure your digital life with military-grade encryption
       </p>
 
       <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-4">
-        <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="relative group">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-vault-600 dark:group-focus-within:text-vault-400 transition-colors" />
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
@@ -47,14 +47,14 @@ export function LockScreen({ onUnlock, loading }: LockScreenProps) {
               setError('')
             }}
             placeholder="Master password"
-            className="input-field pl-9 pr-10"
+            className="input-field pl-10 pr-11 text-base"
             autoFocus
             spellCheck={false}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-vault-600 dark:hover:text-vault-400 transition-colors p-1"
           >
             {showPassword ? (
               <EyeOff className="w-4 h-4" />
@@ -65,24 +65,30 @@ export function LockScreen({ onUnlock, loading }: LockScreenProps) {
         </div>
 
         {error && (
-          <p className="text-sm text-red-500 dark:text-red-400 text-center animate-fade-in">
-            {error}
-          </p>
+          <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800 animate-shake">
+            <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+              {error}
+            </p>
+          </div>
         )}
 
         <button
           type="submit"
           disabled={loading || !password.trim()}
-          className="btn-primary flex items-center justify-center gap-2"
+          className="btn-primary flex items-center justify-center gap-2 py-3 text-base font-semibold shadow-lg shadow-vault-600/40 hover:shadow-lg hover:shadow-vault-700/40"
         >
           {loading ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
-            <Lock className="w-4 h-4" />
+            <Lock className="w-5 h-5" />
           )}
-          {loading ? 'Unlocking...' : 'Unlock'}
+          {loading ? 'Unlocking...' : 'Unlock Vault'}
         </button>
       </form>
+
+      <p className="text-xs text-gray-500 dark:text-gray-500 mt-8 text-center max-w-xs">
+        Your master password is never stored or transmitted. Only you can access your vault.
+      </p>
     </div>
   )
 }
