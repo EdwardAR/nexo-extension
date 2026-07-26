@@ -1,3 +1,7 @@
+// Session management - persistent across popup lifecycle
+let masterPassword: string | null = null
+let sessionActive = false
+
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Password Vault installed')
 })
@@ -6,7 +10,15 @@ chrome.alarms.create('autoLock', { periodInMinutes: 5 })
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'autoLock') {
-    chrome.storage.local.set({ locked: true })
+    // Lock the vault and clear session
+    masterPassword = null
+    sessionActive = false
+    chrome.storage.session.set({ sessionActive: false })
+    // Notify all popup instances
+    chrome.runtime.sendMessage(
+      { action: 'SESSION_LOCKED' },
+      () => chrome.runtime.lastError // Ignore if no popup is open
+    )
   }
 })
 
@@ -20,6 +32,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     handleSaveDetected(message.credentials, sendResponse)
     return true
   }
+
+  // Session management messages
+  if (message.action === 'UNLOCK_VAULT') {
+    masterPassword = message.password
+    sessionActive = true
+    chrome.storage.session.set({ sessionActive: true })
+    sendResponse({ success: true })
+    return true
+  }
+
+  if (message.action === 'LOCK_VAULT') {
+    masterPassword = null
+    sessionActive = false
+    chrome.storage.session.set({ sessionActive: false })
+    sendResponse({ success: true })
+    return true
+  }
+
+  if (message.action === 'GET_SESSION_STATUS') {
+    sendResponse({ sessionActive, hasPassword: masterPassword !== null })
+    return true
+  }
+
+  if (message.action === 'GET_PASSWORD') {
+    if (masterPassword) {
+      sendResponse({ password: masterPassword })
+    } else {
+      sendResponse({ error: 'Session not active' })
+    }
+    return true
+  }
 })
 
 async function handleGetAutofillData(
@@ -27,8 +70,7 @@ async function handleGetAutofillData(
   sendResponse: (response: any) => void
 ) {
   try {
-    const result = await chrome.storage.local.get('vault_data')
-    if (!result.vault_data) {
+    if (!masterPassword) {
       sendResponse({ success: false, error: 'Vault locked' })
       return
     }
@@ -43,7 +85,10 @@ async function handleSaveDetected(
   sendResponse: (response: any) => void
 ) {
   try {
-    const result = await chrome.storage.local.get('password_vault')
+    if (!masterPassword) {
+      sendResponse({ success: false, error: 'Vault locked - cannot save credentials' })
+      return
+    }
     sendResponse({ success: true })
   } catch (error) {
     sendResponse({ success: false, error: String(error) })
