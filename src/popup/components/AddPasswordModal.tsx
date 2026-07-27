@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { X, Globe, User, Key, FileText } from 'lucide-react'
+import { X, Globe, User, KeyRound, FileText, Eye, EyeOff, Save } from 'lucide-react'
 import type { PasswordEntry } from '../types'
+import { IconButton } from './IconButton'
 
 interface AddPasswordModalProps {
   onClose: () => void
-  onSave: (entry: PasswordEntry) => void
+  onSave: (entry: PasswordEntry) => Promise<boolean>
   initialSite?: string
 }
 
@@ -13,96 +14,118 @@ export function AddPasswordModal({ onClose, onSave, initialSite }: AddPasswordMo
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [notes, setNotes] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    if (!site.trim() || !username.trim() || !password.trim()) return
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!site.trim() || !username.trim() || !password) return
 
+    const now = Date.now()
     const entry: PasswordEntry = {
       id: crypto.randomUUID(),
       site: site.trim(),
       username: username.trim(),
       password,
       notes: notes.trim(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
     }
 
-    onSave(entry)
-    onClose()
+    setSaving(true)
+    try {
+      if (await onSave(entry)) onClose()
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Add Password
-          </h2>
-          <button onClick={onClose} className="btn-ghost p-1">
-            <X className="w-4 h-4" />
-          </button>
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div
+        className="modal-content"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-title"
+      >
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <h2 id="add-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">Nuevo acceso</h2>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Se cifrará antes de guardarse.</p>
+          </div>
+          <IconButton label="Cerrar" onClick={onClose}><X className="h-4 w-4" /></IconButton>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          <div className="relative">
-            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <label className="form-field">
+            <span>Sitio web</span>
+            <Globe className="field-icon" />
             <input
-              type="url"
+              type="text"
               value={site}
-              onChange={(e) => setSite(e.target.value)}
-              placeholder="Site URL (e.g. https://github.com)"
+              onChange={(event) => setSite(event.target.value)}
+              placeholder="github.com"
               className="input-field pl-9"
               autoFocus
               required
             />
-          </div>
+          </label>
 
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <label className="form-field">
+            <span>Usuario o correo</span>
+            <User className="field-icon" />
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username / Email"
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="nombre@correo.com"
               className="input-field pl-9"
               required
             />
-          </div>
+          </label>
 
-          <div className="relative">
-            <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <label className="form-field">
+            <span>Contraseña</span>
+            <KeyRound className="field-icon" />
             <input
-              type="text"
+              type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="input-field pl-9"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Ingresa la contraseña"
+              className="input-field pl-9 pr-10"
               required
             />
-          </div>
+            <IconButton
+              label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              onClick={() => setShowPassword((visible) => !visible)}
+              className="absolute bottom-1.5 right-1.5"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </IconButton>
+          </label>
 
-          <div className="relative">
-            <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+          <label className="form-field">
+            <span>Notas <small>(opcional)</small></span>
+            <FileText className="field-icon field-icon-top" />
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Notes (optional)"
-              className="input-field pl-9 pt-2.5 resize-none"
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Información adicional"
+              className="input-field resize-none pl-9 pt-2.5"
               rows={2}
             />
-          </div>
+          </label>
 
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1">
-              Cancel
-            </button>
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="btn-ghost flex-1">Cancelar</button>
             <button
               type="submit"
-              className="btn-primary flex-1"
-              disabled={!site.trim() || !username.trim() || !password.trim()}
+              className="btn-primary flex flex-1 items-center justify-center gap-2"
+              disabled={saving || !site.trim() || !username.trim() || !password}
             >
-              Save
+              <Save className="h-4 w-4" />
+              {saving ? 'Guardando…' : 'Guardar'}
             </button>
           </div>
         </form>

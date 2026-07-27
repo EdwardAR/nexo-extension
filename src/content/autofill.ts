@@ -4,20 +4,6 @@ interface AutofillSuggestion {
   site: string
 }
 
-let currentSuggestions: AutofillSuggestion[] = []
-
-function findLoginForms(): HTMLFormElement[] {
-  const forms: HTMLFormElement[] = []
-  const allForms = document.querySelectorAll('form')
-  allForms.forEach((form) => {
-    const passwordInput = form.querySelector('input[type="password"]')
-    if (passwordInput) {
-      forms.push(form)
-    }
-  })
-  return forms
-}
-
 function findPasswordInputs(): HTMLInputElement[] {
   return Array.from(document.querySelectorAll('input[type="password"]'))
 }
@@ -65,7 +51,7 @@ function createAutofillButton(passwordInput: HTMLInputElement): HTMLElement {
   return btn
 }
 
-function showSuggestions(passwordInput: HTMLInputElement, anchor: HTMLElement) {
+async function showSuggestions(passwordInput: HTMLInputElement, anchor: HTMLElement) {
   const existing = document.querySelector('.pv-suggestions')
   if (existing) existing.remove()
 
@@ -73,19 +59,23 @@ function showSuggestions(passwordInput: HTMLInputElement, anchor: HTMLElement) {
   const suggestions = document.createElement('div')
   suggestions.className = 'pv-suggestions'
 
-  chrome.storage.local.get('password_vault').then((result) => {
-    if (!result.password_vault) {
-      suggestions.innerHTML = '<div class="pv-suggestion-item">Vault locked - open extension</div>'
-      return
-    }
+  positionSuggestions(suggestions, anchor)
+  document.body.appendChild(suggestions)
+  setSuggestionMessage(suggestions, 'Buscando accesos…')
 
-    const domain = window.location.hostname
-    const filtered = currentSuggestions.filter((s) => s.site.includes(domain))
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'getAutofillData',
+      url: window.location.href,
+    })
 
-    if (filtered.length === 0) {
-      suggestions.innerHTML = '<div class="pv-suggestion-item">No passwords for this site</div>'
+    if (!response?.success) {
+      setSuggestionMessage(suggestions, 'Bóveda bloqueada — abre la extensión')
+    } else if (!Array.isArray(response.suggestions) || response.suggestions.length === 0) {
+      setSuggestionMessage(suggestions, 'No hay accesos para este sitio')
     } else {
-      filtered.forEach((suggestion) => {
+      suggestions.replaceChildren()
+      response.suggestions.forEach((suggestion: AutofillSuggestion) => {
         const item = document.createElement('div')
         item.className = 'pv-suggestion-item pv-suggestion-clickable'
         item.innerHTML = `
@@ -100,25 +90,38 @@ function showSuggestions(passwordInput: HTMLInputElement, anchor: HTMLElement) {
           </div>
         `
         item.addEventListener('click', () => {
-          if (usernameInput) {
-            usernameInput.value = suggestion.username
-            usernameInput.dispatchEvent(new Event('input', { bubbles: true }))
-          }
-          passwordInput.value = suggestion.password
-          passwordInput.dispatchEvent(new Event('input', { bubbles: true }))
+          if (usernameInput) setInputValue(usernameInput, suggestion.username)
+          setInputValue(passwordInput, suggestion.password)
           suggestions.remove()
         })
         suggestions.appendChild(item)
       })
     }
+  } catch {
+    setSuggestionMessage(suggestions, 'No se pudo acceder a la bóveda')
+  }
 
-    positionSuggestions(suggestions, anchor)
-    document.body.appendChild(suggestions)
+  setTimeout(() => {
+    document.addEventListener('click', () => suggestions.remove(), { once: true })
+  }, 0)
+}
 
-    setTimeout(() => {
-      document.addEventListener('click', () => suggestions.remove(), { once: true })
-    }, 0)
-  })
+function setSuggestionMessage(container: HTMLElement, message: string) {
+  const item = document.createElement('div')
+  item.className = 'pv-suggestion-item'
+  item.textContent = message
+  container.replaceChildren(item)
+}
+
+function setInputValue(input: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    'value'
+  )?.set
+
+  setter?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  input.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
 function positionSuggestions(suggestions: HTMLElement, anchor: HTMLElement) {

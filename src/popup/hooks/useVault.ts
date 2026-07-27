@@ -11,8 +11,8 @@ export function useVault() {
   useEffect(() => {
     const checkSessionStatus = async () => {
       try {
-        const result = await chrome.storage.session.get('sessionActive')
-        if (result.sessionActive) {
+        const status = await chrome.runtime.sendMessage({ action: 'GET_SESSION_STATUS' })
+        if (status.sessionActive && status.hasPassword) {
           setUnlocked(true)
           // Load entries if already unlocked
           try {
@@ -20,6 +20,9 @@ export function useVault() {
             if (response.password) {
               const data = await storage.loadVault(response.password)
               setEntries(data)
+            } else {
+              setUnlocked(false)
+              setEntries([])
             }
           } catch (error) {
             // Service worker may not have password anymore, lock the session
@@ -84,46 +87,46 @@ export function useVault() {
 
   const addEntry = useCallback(
     async (entry: PasswordEntry) => {
-      try {
-        const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-        if (!response.password) return
-        await storage.addEntry(entry, response.password)
-        setEntries((prev) => [...prev, entry])
-      } catch (error) {
-        console.error('Error adding entry:', error)
+      const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
+      if (!response.password) {
+        setUnlocked(false)
+        setEntries([])
+        throw new Error('Vault session expired')
       }
+      await storage.addEntry(entry, response.password)
+      setEntries((prev) => [...prev, entry])
     },
     []
   )
 
   const updateEntry = useCallback(
     async (id: string, updates: Partial<PasswordEntry>) => {
-      try {
-        const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-        if (!response.password) return
-        await storage.updateEntry(id, updates, response.password)
-        setEntries((prev) =>
-          prev.map((e) =>
-            e.id === id ? { ...e, ...updates, updatedAt: Date.now() } : e
-          )
-        )
-      } catch (error) {
-        console.error('Error updating entry:', error)
+      const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
+      if (!response.password) {
+        setUnlocked(false)
+        setEntries([])
+        throw new Error('Vault session expired')
       }
+      await storage.updateEntry(id, updates, response.password)
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.id === id ? { ...e, ...updates, updatedAt: Date.now() } : e
+        )
+      )
     },
     []
   )
 
   const deleteEntry = useCallback(
     async (id: string) => {
-      try {
-        const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-        if (!response.password) return
-        await storage.deleteEntry(id, response.password)
-        setEntries((prev) => prev.filter((e) => e.id !== id))
-      } catch (error) {
-        console.error('Error deleting entry:', error)
+      const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
+      if (!response.password) {
+        setUnlocked(false)
+        setEntries([])
+        throw new Error('Vault session expired')
       }
+      await storage.deleteEntry(id, response.password)
+      setEntries((prev) => prev.filter((e) => e.id !== id))
     },
     []
   )

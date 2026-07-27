@@ -22,7 +22,7 @@ export default function App() {
     async (password: string) => {
       const success = await unlock(password)
       if (success) {
-        addToast('Vault unlocked', 'success')
+        addToast('Bóveda desbloqueada', 'success')
       }
       return success
     },
@@ -31,29 +31,65 @@ export default function App() {
 
   const handleLock = useCallback(async () => {
     await lock()
-    addToast('Vault locked', 'info')
+    addToast('Bóveda bloqueada', 'info')
   }, [lock, addToast])
 
   const handleAdd = useCallback(
     async (entry: PasswordEntry) => {
-      await addEntry(entry)
-      addToast('Password saved', 'success')
+      try {
+        await addEntry(entry)
+        addToast('Contraseña guardada', 'success')
+        return true
+      } catch {
+        addToast('No se pudo guardar la contraseña', 'error')
+        return false
+      }
     },
     [addEntry, addToast]
   )
 
   const handleUpdate = useCallback(
     async (id: string, updates: Partial<PasswordEntry>) => {
-      await updateEntry(id, updates)
+      try {
+        await updateEntry(id, updates)
+        setViewingEntry((current) =>
+          current?.id === id ? { ...current, ...updates, updatedAt: Date.now() } : current
+        )
+        addToast('Cambios guardados', 'success')
+        return true
+      } catch {
+        addToast('No se pudieron guardar los cambios', 'error')
+        return false
+      }
     },
-    [updateEntry]
+    [updateEntry, addToast]
   )
 
   const handleDelete = useCallback(
     async (id: string) => {
-      await deleteEntry(id)
+      try {
+        await deleteEntry(id)
+        setViewingEntry(null)
+        addToast('Contraseña eliminada', 'success')
+        return true
+      } catch {
+        addToast('No se pudo eliminar la contraseña', 'error')
+        return false
+      }
     },
-    [deleteEntry]
+    [deleteEntry, addToast]
+  )
+
+  const handleCopy = useCallback(
+    async (text: string, label: string) => {
+      try {
+        await navigator.clipboard.writeText(text)
+        addToast(`${label} copiado`, 'success')
+      } catch {
+        addToast('No se pudo copiar', 'error')
+      }
+    },
+    [addToast]
   )
 
   if (!unlocked) {
@@ -74,8 +110,10 @@ export default function App() {
         entries={entries}
         onAdd={() => setShowAddModal(true)}
         onView={setViewingEntry}
-        onDelete={handleDelete}
+        onCopy={handleCopy}
         onLock={handleLock}
+        dark={dark}
+        onToggleTheme={toggle}
       />
 
       {showAddModal && (
@@ -91,6 +129,7 @@ export default function App() {
           onClose={() => setViewingEntry(null)}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
+          onCopy={handleCopy}
         />
       )}
 

@@ -1,22 +1,24 @@
 import { Sun, Moon } from 'lucide-react'
+import { IconButton } from './IconButton'
 
 interface ThemeToggleProps {
   dark: boolean
   onToggle: () => void
+  inverse?: boolean
 }
 
-export function ThemeToggle({ dark, onToggle }: ThemeToggleProps) {
+export function ThemeToggle({ dark, onToggle, inverse = false }: ThemeToggleProps) {
   return (
-    <button
+    <IconButton
       onClick={onToggle}
-      className="btn-ghost p-2 rounded-lg"
-      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      label={dark ? 'Usar tema claro' : 'Usar tema oscuro'}
+      tone={inverse ? 'inverse' : 'neutral'}
     >
       {dark ? (
-        <Sun className="w-4 h-4 text-yellow-400" />
+        <Sun className="h-4 w-4" />
       ) : (
-        <Moon className="w-4 h-4 text-gray-500" />
+        <Moon className="h-4 w-4" />
       )}
-    </button>
+    </IconButton>
   )
 }

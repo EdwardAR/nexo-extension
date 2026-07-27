@@ -3,6 +3,9 @@
   "name": "Password Vault",
   "version": "1.0.0",
   "description": "Secure password manager with autofill",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "permissions": [
     "storage",
     "activeTab",

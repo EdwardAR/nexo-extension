@@ -27,14 +27,15 @@ function ToastItem({
 
   return (
     <div
-      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border ${borders[toast.type]}
-        bg-white dark:bg-gray-800 shadow-lg animate-slide-up`}
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 ${borders[toast.type]}
+        bg-white shadow-xl animate-slide-up dark:bg-slate-800`}
+      role="status"
     >
       {icons[toast.type]}
       <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
         {toast.message}
       </span>
-      <button onClick={() => onRemove(toast.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+      <button aria-label="Cerrar notificación" onClick={() => onRemove(toast.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
         <X className="w-3.5 h-3.5" />
       </button>
     </div>

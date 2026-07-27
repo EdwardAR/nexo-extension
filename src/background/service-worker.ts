@@ -1,98 +1,113 @@
-// Session management - persistent across popup lifecycle
-let masterPassword: string | null = null
-let sessionActive = false
+const SESSION_KEY = 'vaultSession'
+const AUTO_LOCK_ALARM = 'autoLock'
+const AUTO_LOCK_MINUTES = 5
+
+interface VaultSession {
+  active: boolean
+  password: string
+}
+
+function resetAutoLock() {
+  chrome.alarms.create(AUTO_LOCK_ALARM, { delayInMinutes: AUTO_LOCK_MINUTES })
+}
+
+async function getSession(): Promise<VaultSession | null> {
+  const result = await chrome.storage.session.get(SESSION_KEY)
+  return result[SESSION_KEY] ?? null
+}
+
+async function clearSession() {
+  await chrome.storage.session.remove([SESSION_KEY, 'sessionActive'])
+  await chrome.alarms.clear(AUTO_LOCK_ALARM)
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Password Vault installed')
 })
 
-chrome.alarms.create('autoLock', { periodInMinutes: 5 })
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== AUTO_LOCK_ALARM) return
 
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'autoLock') {
-    // Lock the vault and clear session
-    masterPassword = null
-    sessionActive = false
-    chrome.storage.session.set({ sessionActive: false })
-    // Notify all popup instances
-    chrome.runtime.sendMessage(
-      { action: 'SESSION_LOCKED' },
-      () => chrome.runtime.lastError // Ignore if no popup is open
-    )
-  }
+  await clearSession()
+  chrome.runtime.sendMessage(
+    { action: 'SESSION_LOCKED' },
+    () => void chrome.runtime.lastError
+  )
 })
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'getAutofillData') {
-    handleGetAutofillData(message.url, sendResponse)
-    return true
-  }
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  const respond = async () => {
+    switch (message.action) {
+      case 'getAutofillData':
+        return handleGetAutofillData(message.url)
 
-  if (message.action === 'saveDetectedCredentials') {
-    handleSaveDetected(message.credentials, sendResponse)
-    return true
-  }
+      case 'saveDetectedCredentials':
+        return handleSaveDetected()
 
-  // Session management messages
-  if (message.action === 'UNLOCK_VAULT') {
-    masterPassword = message.password
-    sessionActive = true
-    chrome.storage.session.set({ sessionActive: true })
-    sendResponse({ success: true })
-    return true
-  }
+      case 'UNLOCK_VAULT':
+        await chrome.storage.session.set({
+          [SESSION_KEY]: { active: true, password: message.password },
+        })
+        resetAutoLock()
+        return { success: true }
 
-  if (message.action === 'LOCK_VAULT') {
-    masterPassword = null
-    sessionActive = false
-    chrome.storage.session.set({ sessionActive: false })
-    sendResponse({ success: true })
-    return true
-  }
+      case 'LOCK_VAULT':
+        await clearSession()
+        return { success: true }
 
-  if (message.action === 'GET_SESSION_STATUS') {
-    sendResponse({ sessionActive, hasPassword: masterPassword !== null })
-    return true
-  }
+      case 'GET_SESSION_STATUS': {
+        const session = await getSession()
+        return {
+          sessionActive: session?.active === true,
+          hasPassword: Boolean(session?.password),
+        }
+      }
 
-  if (message.action === 'GET_PASSWORD') {
-    if (masterPassword) {
-      sendResponse({ password: masterPassword })
-    } else {
-      sendResponse({ error: 'Session not active' })
+      case 'GET_PASSWORD': {
+        const session = await getSession()
+        if (!session?.active || !session.password) {
+          return { error: 'Session not active' }
+        }
+        resetAutoLock()
+        return { password: session.password }
+      }
+
+      default:
+        return { error: 'Unknown action' }
     }
-    return true
   }
+
+  respond()
+    .then(sendResponse)
+    .catch((error) => sendResponse({ error: String(error) }))
+
+  return true
 })
 
-async function handleGetAutofillData(
-  url: string,
-  sendResponse: (response: any) => void
-) {
-  try {
-    if (!masterPassword) {
-      sendResponse({ success: false, error: 'Vault locked' })
-      return
-    }
-    sendResponse({ success: true })
-  } catch (error) {
-    sendResponse({ success: false, error: String(error) })
-  }
+async function handleGetAutofillData(url: string) {
+  const session = await getSession()
+  if (!session?.password) return { success: false, error: 'Vault locked' }
+
+  const currentHostname = getHostname(url)
+  const entries = await loadVault(session.password)
+  const suggestions = entries
+    .filter((entry) => getHostname(entry.site) === currentHostname)
+    .map(({ site, username, password }) => ({ site, username, password }))
+
+  resetAutoLock()
+  return { success: true, suggestions }
 }
 
-async function handleSaveDetected(
-  credentials: { site: string; username: string; password: string },
-  sendResponse: (response: any) => void
-) {
-  try {
-    if (!masterPassword) {
-      sendResponse({ success: false, error: 'Vault locked - cannot save credentials' })
-      return
-    }
-    sendResponse({ success: true })
-  } catch (error) {
-    sendResponse({ success: false, error: String(error) })
+async function handleSaveDetected() {
+  const session = await getSession()
+  if (!session?.password) {
+    return { success: false, error: 'Vault locked - cannot save credentials' }
   }
+
+  resetAutoLock()
+  return { success: true }
 }
 
 export {}
+import { loadVault } from '../popup/lib/storage'
+import { getHostname } from '../shared/site'

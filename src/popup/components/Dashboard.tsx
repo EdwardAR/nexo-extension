@@ -1,23 +1,29 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, LogOut, ShieldCheck } from 'lucide-react'
+import { Search, Plus, LockKeyhole, ShieldCheck, X } from 'lucide-react'
 import type { PasswordEntry } from '../types'
 import { PasswordCard } from './PasswordCard'
 import { EmptyState } from './EmptyState'
+import { ThemeToggle } from './ThemeToggle'
+import { IconButton } from './IconButton'
 
 interface DashboardProps {
   entries: PasswordEntry[]
   onAdd: () => void
   onView: (entry: PasswordEntry) => void
-  onDelete: (id: string) => void
+  onCopy: (text: string, label: string) => void
   onLock: () => void
+  dark: boolean
+  onToggleTheme: () => void
 }
 
 export function Dashboard({
   entries,
   onAdd,
   onView,
-  onDelete,
+  onCopy,
   onLock,
+  dark,
+  onToggleTheme,
 }: DashboardProps) {
   const [search, setSearch] = useState('')
 
@@ -32,72 +38,85 @@ export function Dashboard({
   )
 
   return (
-    <div className="flex flex-col h-screen">
-      <header className="bg-gradient-to-r from-vault-600 to-vault-700 dark:from-vault-800 dark:to-vault-900 px-4 py-4 shadow-md">
+    <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-900">
+      <header className="relative overflow-hidden bg-gradient-to-br from-vault-600 via-vault-700 to-vault-900 px-5 pb-5 pt-4">
+        <div className="pointer-events-none absolute -right-8 -top-12 h-32 w-32 rounded-full bg-white/10 blur-sm" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/20 backdrop-blur">
-              <ShieldCheck className="w-5 h-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/15 shadow-inner backdrop-blur">
+              <ShieldCheck className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white">
-                Password Vault
-              </h1>
-              <p className="text-xs text-white/70">
-                {entries.length} {entries.length === 1 ? 'password' : 'passwords'} saved
+              <h1 className="text-base font-bold tracking-tight text-white">PassSave</h1>
+              <p className="text-xs text-vault-100">
+                {entries.length} {entries.length === 1 ? 'acceso guardado' : 'accesos guardados'}
               </p>
             </div>
           </div>
-          <button onClick={onLock} className="p-2 hover:bg-white/20 rounded-lg transition-colors" title="Lock vault">
-            <LogOut className="w-5 h-5 text-white" />
-          </button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle dark={dark} onToggle={onToggleTheme} inverse />
+            <IconButton label="Bloquear bóveda" onClick={onLock} tone="inverse">
+              <LockKeyhole className="h-4 w-4" />
+            </IconButton>
+          </div>
         </div>
       </header>
 
-      <div className="px-4 py-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+      <div className="-mt-1 px-4 pb-4 pt-3">
         <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-vault-600 dark:group-focus-within:text-vault-400 transition-colors" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-vault-600" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by site or username..."
-            className="input-field pl-10 pr-4 bg-white dark:bg-gray-700"
+            placeholder="Buscar sitio o usuario"
+            aria-label="Buscar contraseñas"
+            className="input-field bg-white pl-10 pr-10 shadow-sm dark:bg-slate-800"
             autoFocus
           />
+          {search && (
+            <IconButton
+              label="Limpiar búsqueda"
+              onClick={() => setSearch('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2"
+            >
+              <X className="h-4 w-4" />
+            </IconButton>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <main className="flex-1 overflow-y-auto px-4 pb-4">
         {filtered.length === 0 ? (
           search ? (
             <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
-              <Search className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-3" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No results for "{search}"
-              </p>
+              <div className="mb-3 rounded-full bg-slate-100 p-3 dark:bg-slate-800">
+                <Search className="h-6 w-6 text-slate-400" />
+              </div>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Sin resultados</p>
+              <p className="mt-1 text-xs text-slate-500">No encontramos “{search}”</p>
             </div>
           ) : (
             <EmptyState onAdd={onAdd} />
           )
         ) : (
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2">
             {filtered.map((entry) => (
               <PasswordCard
                 key={entry.id}
                 entry={entry}
                 onView={onView}
-                onDelete={onDelete}
+                onCopy={onCopy}
               />
             ))}
           </div>
         )}
-      </div>
+      </main>
 
-      <footer className="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+      <footer className="border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
         <button onClick={onAdd} className="btn-primary flex items-center justify-center gap-2">
           <Plus className="w-4 h-4" />
-          Add Password
+          Agregar contraseña
         </button>
       </footer>
     </div>

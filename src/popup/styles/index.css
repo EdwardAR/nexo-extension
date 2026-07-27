@@ -22,9 +22,10 @@
   }
 
   body {
-    @apply m-0 p-0 font-sans;
+    @apply m-0 p-0 font-sans antialiased;
     width: 380px;
-    min-height: 480px;
+    min-height: 520px;
+    overflow: hidden;
     background: var(--bg-primary);
     color: var(--text-primary);
   }
@@ -49,15 +50,14 @@
 @layer components {
   .btn-primary {
     @apply w-full px-4 py-2.5 rounded-xl font-semibold text-sm
-      bg-gradient-to-r from-vault-600 to-vault-700
-      hover:from-vault-700 hover:to-vault-800
+      bg-vault-600 hover:bg-vault-700
       dark:from-vault-500 dark:to-vault-700
-      dark:hover:from-vault-600 dark:hover:to-vault-800
-      text-white transition-all duration-200
+      dark:hover:bg-vault-600
+      text-white transition-all duration-150
       focus:outline-none focus:ring-2 focus:ring-vault-500 focus:ring-offset-2
       dark:focus:ring-offset-gray-900
-      disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-vault-600 disabled:hover:to-vault-700
-      active:scale-95;
+      disabled:opacity-50 disabled:cursor-not-allowed
+      active:translate-y-px;
   }
 
   .btn-ghost {
@@ -76,34 +76,80 @@
       focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-800;
   }
 
+  .icon-button {
+    @apply inline-flex h-9 w-9 flex-none items-center justify-center rounded-lg
+      transition-colors duration-150
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-vault-500
+      disabled:pointer-events-none disabled:opacity-50;
+  }
+
   .input-field {
-    @apply w-full px-4 py-2.5 rounded-xl text-sm font-medium
-      bg-white dark:bg-gray-700
-      border-2 border-gray-200 dark:border-gray-600
-      text-gray-900 dark:text-gray-100
-      placeholder-gray-500 dark:placeholder-gray-400
-      focus:outline-none focus:ring-2 focus:ring-vault-500 focus:border-transparent
-      transition-all duration-200;
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm
+      text-slate-900 outline-none transition duration-150
+      placeholder:text-slate-400
+      hover:border-slate-300
+      focus:border-vault-500 focus:ring-2 focus:ring-vault-500/15
+      dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100
+      dark:placeholder:text-slate-500 dark:hover:border-slate-600;
   }
 
   .card {
-    @apply rounded-xl p-4
-      bg-white dark:bg-gray-800
-      border border-gray-200 dark:border-gray-700
-      shadow-sm hover:shadow-lg
-      transition-all duration-300;
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm
+      transition duration-150 hover:-translate-y-px hover:border-vault-200 hover:shadow-md
+      dark:border-slate-800 dark:bg-slate-800/80 dark:hover:border-vault-800;
   }
 
   .modal-overlay {
-    @apply fixed inset-0 bg-black/50 backdrop-blur-sm
+    @apply fixed inset-0 bg-slate-950/55 backdrop-blur-sm
       flex items-center justify-center z-50
       animate-fade-in;
   }
 
   .modal-content {
-    @apply bg-white dark:bg-gray-800
-      rounded-2xl p-6 mx-4 w-full max-w-sm
-      shadow-2xl border border-gray-100 dark:border-gray-700
+    @apply mx-4 max-h-[calc(100vh-24px)] w-full max-w-sm overflow-y-auto
+      rounded-2xl border border-white/60 bg-white p-5
+      shadow-2xl dark:border-slate-700 dark:bg-slate-800
       animate-scale-in;
+  }
+
+  .form-field {
+    @apply relative block;
+  }
+
+  .form-field > span {
+    @apply mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300;
+  }
+
+  .form-field small {
+    @apply font-normal text-slate-400;
+  }
+
+  .field-icon {
+    @apply absolute bottom-3 left-3 h-4 w-4 text-slate-400;
+  }
+
+  .field-icon-top {
+    @apply bottom-auto top-[34px];
+  }
+
+  .detail-row {
+    @apply rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-slate-900/60;
+  }
+
+  .detail-label {
+    @apply mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500;
+  }
+
+  .detail-label svg {
+    @apply h-3 w-3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
