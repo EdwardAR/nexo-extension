@@ -1,37 +1,45 @@
 # Password Vault
 
-Un gestor de contraseñas para Chrome que guarda tus claves de forma segura y las rellena automáticamente en los sitios web.
+Gestor de contraseñas para Chrome con cifrado local y autocompletado.
 
-## ¿Cómo funciona?
+## Desarrollo
 
-1. **Creas una contraseña maestra** — es la única que tendrás que recordar. Sin ella, nadie puede ver tus claves.
-2. **Guardas tus contraseñas** — añade usuario y contraseña de cada sitio donde tengas cuenta.
-3. **Todo se cifra** — tus datos se encriptan con AES-256 (el mismo estándar que usan bancos) y solo se descifran con tu contraseña maestra.
-4. **Autocompletado** — cuando entras a un sitio, aparece un botón morado junto al campo de contraseña. Un clic y se rellena solo.
+```bash
+npm install
+npm run build
+```
 
-## Funcionalidades
+Carga la carpeta `dist` desde `chrome://extensions/` usando **Cargar descomprimida**.
 
-- **Cifrado total** — tus contraseñas nunca salen de tu navegador. Ni siquiera nosotros podemos verlas.
-- **Autofill inteligente** — botón flotante que detecta formularios de login y sugiere tus credenciales guardadas.
-- **Búsqueda instantánea** — encuentra cualquier contraseña en segundos.
-- **Modo oscuro y claro** — se adapta automáticamente a tu sistema.
-- **Copiado rápido** — un clic para copiar usuario o contraseña al portapapeles.
+## Cambiar el icono
 
-## Instalación
+El diseño maestro está en `public/icons/icon-source.svg`. Para reemplazarlo sin
+modificar el manifest ni la estructura del proyecto:
 
-1. Abre Chrome y ve a `chrome://extensions/`
-2. Activa el **Modo desarrollador** (esquina superior derecha)
-3. Haz clic en **Cargar descomprimida**
-4. Selecciona la carpeta `dist` de este proyecto
-5. Listo — aparece el icono del escudo en la barra de herramientas
+1. Edita o reemplaza `public/icons/icon-source.svg` manteniendo un `viewBox`
+   cuadrado, preferiblemente `0 0 128 128`.
+2. Ejecuta `npm run icons`.
+3. Ejecuta `npm run build`.
+4. Recarga la extensión desde `chrome://extensions/`.
 
-## Primeros pasos
+El comando genera automáticamente:
 
-1. Haz clic en el icono de Password Vault
-2. Crea tu **contraseña maestra** (la que usarás para desbloquear el vault)
-3. Empieza a guardar tus contraseñas con el botón **Add Password**
-4. Al visitar un sitio con formulario de login, verás un botón morado que te permite autocompletar
+- `public/icons/icon16.png`
+- `public/icons/icon48.png`
+- `public/icons/icon128.png`
+
+No cambies esos nombres porque son las rutas estables utilizadas por el manifest.
+
+## Sesión de la bóveda
+
+La contraseña maestra permanece únicamente en `chrome.storage.session`. La bóveda
+continúa desbloqueada mientras el navegador siga abierto y se bloquea cuando:
+
+- pulsas el botón **Bloquear bóveda**;
+- cierras la última ventana de Chrome.
+
+La contraseña maestra no se guarda en `chrome.storage.local`.
 
 ## Tecnología
 
-Construido con React, TypeScript, Tailwind CSS y Web Crypto API. Compatible con Chrome (Manifest V3).
+React, TypeScript, Tailwind CSS, Web Crypto API y Chrome Manifest V3.

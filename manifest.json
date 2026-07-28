@@ -9,8 +9,7 @@
   "permissions": [
     "storage",
     "activeTab",
-    "clipboardWrite",
-    "alarms"
+    "clipboardWrite"
   ],
   "host_permissions": [
     "<all_urls>"

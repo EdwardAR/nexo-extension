@@ -1,14 +1,11 @@
+import { loadVault } from '../popup/lib/storage'
+import { getHostname } from '../shared/site'
+
 const SESSION_KEY = 'vaultSession'
-const AUTO_LOCK_ALARM = 'autoLock'
-const AUTO_LOCK_MINUTES = 5
 
 interface VaultSession {
   active: boolean
   password: string
-}
-
-function resetAutoLock() {
-  chrome.alarms.create(AUTO_LOCK_ALARM, { delayInMinutes: AUTO_LOCK_MINUTES })
 }
 
 async function getSession(): Promise<VaultSession | null> {
@@ -18,21 +15,15 @@ async function getSession(): Promise<VaultSession | null> {
 
 async function clearSession() {
   await chrome.storage.session.remove([SESSION_KEY, 'sessionActive'])
-  await chrome.alarms.clear(AUTO_LOCK_ALARM)
 }
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Password Vault installed')
 })
 
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== AUTO_LOCK_ALARM) return
-
-  await clearSession()
-  chrome.runtime.sendMessage(
-    { action: 'SESSION_LOCKED' },
-    () => void chrome.runtime.lastError
-  )
+chrome.windows.onRemoved.addListener(async () => {
+  const openWindows = await chrome.windows.getAll()
+  if (openWindows.length === 0) await clearSession()
 })
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -48,7 +39,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         await chrome.storage.session.set({
           [SESSION_KEY]: { active: true, password: message.password },
         })
-        resetAutoLock()
         return { success: true }
 
       case 'LOCK_VAULT':
@@ -68,7 +58,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         if (!session?.active || !session.password) {
           return { error: 'Session not active' }
         }
-        resetAutoLock()
         return { password: session.password }
       }
 
@@ -94,7 +83,6 @@ async function handleGetAutofillData(url: string) {
     .filter((entry) => getHostname(entry.site) === currentHostname)
     .map(({ site, username, password }) => ({ site, username, password }))
 
-  resetAutoLock()
   return { success: true, suggestions }
 }
 
@@ -104,10 +92,7 @@ async function handleSaveDetected() {
     return { success: false, error: 'Vault locked - cannot save credentials' }
   }
 
-  resetAutoLock()
   return { success: true }
 }
 
 export {}
-import { loadVault } from '../popup/lib/storage'
-import { getHostname } from '../shared/site'
