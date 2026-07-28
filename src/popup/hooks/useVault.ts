@@ -1,144 +1,120 @@
-import { useState, useCallback, useEffect } from 'react'
-import type { PasswordEntry } from '../types'
+import { useCallback, useEffect, useState } from 'react'
+import type { PasswordDraft, PasswordEntry } from '../types'
 import * as storage from '../lib/storage'
 
 export function useVault() {
   const [unlocked, setUnlocked] = useState(false)
   const [entries, setEntries] = useState<PasswordEntry[]>([])
+  const [draft, setDraft] = useState<PasswordDraft | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Check session status on mount and listen for changes
+  const clearMemory = useCallback(() => {
+    setUnlocked(false)
+    setEntries([])
+    setDraft(null)
+  }, [])
+
+  const loadData = useCallback(async (password: string) => {
+    const data = await storage.loadVault(password)
+    setEntries(data)
+    setDraft(await storage.loadDraft(password))
+    await storage.syncRenewalSchedule(data)
+  }, [])
+
   useEffect(() => {
     const checkSessionStatus = async () => {
       try {
         const status = await chrome.runtime.sendMessage({ action: 'GET_SESSION_STATUS' })
-        if (status.sessionActive && status.hasPassword) {
-          setUnlocked(true)
-          // Load entries if already unlocked
-          try {
-            const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-            if (response.password) {
-              const data = await storage.loadVault(response.password)
-              setEntries(data)
-            } else {
-              setUnlocked(false)
-              setEntries([])
-            }
-          } catch (error) {
-            // Service worker may not have password anymore, lock the session
-            setUnlocked(false)
-            setEntries([])
-          }
-        }
-      } catch (error) {
-        console.error('Error checking session status:', error)
+        if (!status.sessionActive || !status.hasPassword) return
+
+        const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
+        if (!response.password) return clearMemory()
+        await loadData(response.password)
+        setUnlocked(true)
+      } catch {
+        clearMemory()
       }
     }
 
-    checkSessionStatus()
-
-    // Listen for session lock messages from service worker (autolock)
-    const handleMessage = (request: any) => {
-      if (request.action === 'SESSION_LOCKED') {
-        setUnlocked(false)
-        setEntries([])
-      }
+    const handleMessage = (request: { action?: string }) => {
+      if (request.action === 'SESSION_LOCKED') clearMemory()
     }
 
+    void checkSessionStatus()
     chrome.runtime.onMessage.addListener(handleMessage)
-
-    return () => {
-      chrome.runtime.onMessage.removeListener(handleMessage)
-    }
-  }, [])
+    return () => chrome.runtime.onMessage.removeListener(handleMessage)
+  }, [clearMemory, loadData])
 
   const unlock = useCallback(async (password: string): Promise<boolean> => {
     setLoading(true)
     try {
       const exists = await storage.isMasterPasswordSet()
-      if (!exists) {
-        await storage.setMasterPassword(password)
-        // Send password to service worker for session management
-        await chrome.runtime.sendMessage({ action: 'UNLOCK_VAULT', password })
-        setEntries([])
-        setUnlocked(true)
-        return true
-      }
+      if (!exists) await storage.setMasterPassword(password)
+      else if (!await storage.verifyMasterPassword(password)) return false
 
-      const valid = await storage.verifyMasterPassword(password)
-      if (!valid) return false
-
-      // Send password to service worker for session management
       await chrome.runtime.sendMessage({ action: 'UNLOCK_VAULT', password })
-      const data = await storage.loadVault(password)
-      setEntries(data)
+      await loadData(password)
       setUnlocked(true)
       return true
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadData])
 
   const lock = useCallback(async () => {
     await chrome.runtime.sendMessage({ action: 'LOCK_VAULT' })
-    setUnlocked(false)
-    setEntries([])
-  }, [])
+    clearMemory()
+  }, [clearMemory])
 
-  const addEntry = useCallback(
-    async (entry: PasswordEntry) => {
-      const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-      if (!response.password) {
-        setUnlocked(false)
-        setEntries([])
-        throw new Error('Vault session expired')
-      }
-      await storage.addEntry(entry, response.password)
-      setEntries((prev) => [...prev, entry])
-    },
-    []
-  )
+  const getPassword = useCallback(async () => {
+    const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
+    if (response.password) return response.password as string
+    clearMemory()
+    throw new Error('Vault session expired')
+  }, [clearMemory])
 
-  const updateEntry = useCallback(
-    async (id: string, updates: Partial<PasswordEntry>) => {
-      const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-      if (!response.password) {
-        setUnlocked(false)
-        setEntries([])
-        throw new Error('Vault session expired')
-      }
-      await storage.updateEntry(id, updates, response.password)
-      setEntries((prev) =>
-        prev.map((e) =>
-          e.id === id ? { ...e, ...updates, updatedAt: Date.now() } : e
-        )
+  const addEntry = useCallback(async (entry: PasswordEntry) => {
+    await storage.addEntry(entry, await getPassword())
+    await storage.clearDraft()
+    setEntries((current) => [...current, entry])
+    setDraft(null)
+  }, [getPassword])
+
+  const updateEntry = useCallback(async (id: string, updates: Partial<PasswordEntry>) => {
+    await storage.updateEntry(id, updates, await getPassword())
+    setEntries((current) =>
+      current.map((entry) =>
+        entry.id === id ? { ...entry, ...updates, updatedAt: Date.now() } : entry
       )
-    },
-    []
-  )
+    )
+  }, [getPassword])
 
-  const deleteEntry = useCallback(
-    async (id: string) => {
-      const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-      if (!response.password) {
-        setUnlocked(false)
-        setEntries([])
-        throw new Error('Vault session expired')
-      }
-      await storage.deleteEntry(id, response.password)
-      setEntries((prev) => prev.filter((e) => e.id !== id))
-    },
-    []
-  )
+  const deleteEntry = useCallback(async (id: string) => {
+    await storage.deleteEntry(id, await getPassword())
+    setEntries((current) => current.filter((entry) => entry.id !== id))
+  }, [getPassword])
+
+  const saveDraft = useCallback(async (nextDraft: PasswordDraft) => {
+    await storage.saveDraft(nextDraft, await getPassword())
+    setDraft(nextDraft)
+  }, [getPassword])
+
+  const discardDraft = useCallback(async () => {
+    await storage.clearDraft()
+    setDraft(null)
+  }, [])
 
   return {
     unlocked,
     entries,
+    draft,
     loading,
     unlock,
     lock,
     addEntry,
     updateEntry,
     deleteEntry,
+    saveDraft,
+    discardDraft,
   }
 }

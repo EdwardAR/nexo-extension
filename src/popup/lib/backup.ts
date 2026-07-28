@@ -1,5 +1,5 @@
 import type { EncryptedVault } from '../types'
-import { HASH_KEY, SALT_KEY, VAULT_KEY } from './storage'
+import { DRAFT_KEY, HASH_KEY, RENEWAL_SCHEDULE_KEY, SALT_KEY, VAULT_KEY } from './storage'
 
 const BACKUP_FORMAT = 'passsave-backup'
 const BACKUP_VERSION = 1
@@ -72,4 +72,5 @@ export async function restoreBackup(value: unknown): Promise<void> {
 
   await chrome.storage.local.set(values)
   if (!backup.data.vault) await chrome.storage.local.remove(VAULT_KEY)
+  await chrome.storage.local.remove([DRAFT_KEY, RENEWAL_SCHEDULE_KEY])
 }

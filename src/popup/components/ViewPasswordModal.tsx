@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import {
   X, Eye, EyeOff, Copy, Pencil, Trash2, Globe, User,
-  KeyRound, FileText, Clock, Save, AlertTriangle,
+  KeyRound, FileText, Clock, Save, AlertTriangle, CalendarDays, RefreshCw,
 } from 'lucide-react'
 import type { PasswordEntry } from '../types'
 import { getHostname } from '../../shared/site'
 import { IconButton } from './IconButton'
+import {
+  DEFAULT_RENEWAL_MONTHS,
+  getRenewalInfo,
+  toLocalDateString,
+} from '../../shared/renewal'
 
 interface ViewPasswordModalProps {
   entry: PasswordEntry
@@ -28,11 +33,17 @@ export function ViewPasswordModal({
   const [username, setUsername] = useState(entry.username)
   const [password, setPassword] = useState(entry.password)
   const [notes, setNotes] = useState(entry.notes)
+  const [passwordChangedOn, setPasswordChangedOn] = useState(entry.passwordChangedOn || '')
+  const [renewalIntervalMonths, setRenewalIntervalMonths] = useState(
+    entry.renewalIntervalMonths || DEFAULT_RENEWAL_MONTHS
+  )
+  const [confirmRenewal, setConfirmRenewal] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
   const domain = getHostname(site)
+  const renewal = getRenewalInfo(entry)
 
-  const handleSave = async () => {
+  const saveChanges = async (changedOn = passwordChangedOn) => {
     if (!site.trim() || !username.trim() || !password) return
     setBusy(true)
     try {
@@ -41,11 +52,22 @@ export function ViewPasswordModal({
         username: username.trim(),
         password,
         notes: notes.trim(),
+        passwordChangedOn: changedOn || undefined,
+        renewalIntervalMonths,
       })
-      if (updated) setEditing(false)
+      if (updated) {
+        setPasswordChangedOn(changedOn)
+        setConfirmRenewal(false)
+        setEditing(false)
+      }
     } finally {
       setBusy(false)
     }
+  }
+
+  const handleSave = () => {
+    if (password !== entry.password) setConfirmRenewal(true)
+    else void saveChanges()
   }
 
   const handleDelete = async () => {
@@ -151,13 +173,58 @@ export function ViewPasswordModal({
             )}
           </div>
 
+          <div className="detail-row">
+            <div className="detail-label"><CalendarDays /> Renovación</div>
+            {editing ? (
+              <div className="grid grid-cols-[1fr_100px] gap-2">
+                <input
+                  type="date"
+                  value={passwordChangedOn}
+                  onChange={(event) => setPasswordChangedOn(event.target.value)}
+                  className="input-field"
+                  aria-label="Fecha del último cambio"
+                />
+                <label className="relative">
+                  <RefreshCw className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={renewalIntervalMonths}
+                    onChange={(event) => setRenewalIntervalMonths(Math.max(1, Math.min(24, Number(event.target.value))))}
+                    className="input-field pl-9 pr-2"
+                    aria-label="Meses entre renovaciones"
+                  />
+                </label>
+              </div>
+            ) : renewal.status === 'unconfigured' ? (
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Configurar fecha del último cambio</p>
+            ) : (
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="text-slate-700 dark:text-slate-300">Cada {entry.renewalIntervalMonths || DEFAULT_RENEWAL_MONTHS} meses</span>
+                <span className={renewal.status === 'overdue' ? 'font-semibold text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}>
+                  {new Date(`${renewal.dueOn}T00:00:00`).toLocaleDateString('es-PE')}
+                </span>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-1.5 pt-1 text-xs text-slate-400 dark:text-slate-500">
             <Clock className="h-3 w-3" />
             <span>Creado el {new Date(entry.createdAt).toLocaleDateString('es-PE')}</span>
           </div>
         </div>
 
-        {editing ? (
+        {editing && confirmRenewal ? (
+          <div className="mt-5 rounded-xl border border-vault-200 bg-vault-50 p-3 dark:border-vault-800 dark:bg-vault-950/30">
+            <p className="text-sm font-semibold text-vault-800 dark:text-vault-200">¿La contraseña fue renovada?</p>
+            <p className="mt-1 text-xs text-vault-700/80 dark:text-vault-300">Esto define desde cuándo se calculará el próximo vencimiento.</p>
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => void saveChanges(passwordChangedOn)} disabled={busy} className="btn-ghost flex-1">No, solo corregí</button>
+              <button onClick={() => void saveChanges(toLocalDateString())} disabled={busy} className="btn-primary flex-1">Sí, se renovó</button>
+            </div>
+          </div>
+        ) : editing ? (
           <div className="mt-5 flex gap-2 border-t border-slate-100 pt-4 dark:border-slate-700">
             <button onClick={() => setEditing(false)} className="btn-ghost flex-1">Cancelar</button>
             <button

@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, LockKeyhole, ShieldCheck, X, DatabaseBackup } from 'lucide-react'
+import { Search, Plus, LockKeyhole, ShieldCheck, X, DatabaseBackup, BellRing } from 'lucide-react'
 import type { PasswordEntry } from '../types'
 import { PasswordCard } from './PasswordCard'
 import { EmptyState } from './EmptyState'
 import { ThemeToggle } from './ThemeToggle'
 import { IconButton } from './IconButton'
+import { getRenewalInfo } from '../../shared/renewal'
 
 interface DashboardProps {
   entries: PasswordEntry[]
@@ -13,6 +14,7 @@ interface DashboardProps {
   onCopy: (text: string, label: string) => void
   onLock: () => void
   onOpenData: () => void
+  onOpenRenewals: () => void
   dark: boolean
   onToggleTheme: () => void
 }
@@ -24,6 +26,7 @@ export function Dashboard({
   onCopy,
   onLock,
   onOpenData,
+  onOpenRenewals,
   dark,
   onToggleTheme,
 }: DashboardProps) {
@@ -37,6 +40,10 @@ export function Dashboard({
           e.username.toLowerCase().includes(search.toLowerCase())
       ),
     [entries, search]
+  )
+  const renewalCount = useMemo(
+    () => entries.filter((entry) => getRenewalInfo(entry).status !== 'current').length,
+    [entries]
   )
 
   return (
@@ -57,6 +64,16 @@ export function Dashboard({
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle dark={dark} onToggle={onToggleTheme} inverse />
+            <div className="relative">
+              <IconButton label="Revisar renovaciones" onClick={onOpenRenewals} tone="inverse">
+                <BellRing className="h-4 w-4" />
+              </IconButton>
+              {renewalCount > 0 && (
+                <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-bold text-amber-950">
+                  {renewalCount > 9 ? '9+' : renewalCount}
+                </span>
+              )}
+            </div>
             <IconButton label="Importar o exportar datos" onClick={onOpenData} tone="inverse">
               <DatabaseBackup className="h-4 w-4" />
             </IconButton>

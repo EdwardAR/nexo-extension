@@ -6,6 +6,18 @@ export interface PasswordEntry {
   notes: string
   createdAt: number
   updatedAt: number
+  passwordChangedOn?: string
+  renewalIntervalMonths?: number
+}
+
+export interface PasswordDraft {
+  site: string
+  username: string
+  password: string
+  notes: string
+  passwordChangedOn: string
+  renewalIntervalMonths: number
+  updatedAt: number
 }
 
 export interface EncryptedVault {

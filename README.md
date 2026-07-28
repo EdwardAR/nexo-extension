@@ -51,6 +51,15 @@ El formato incluye un identificador y una versión para poder migrarlo en futura
 versiones. Las credenciales permanecen cifradas y, después de restaurarlas, debes
 usar la contraseña maestra con la que se creó el respaldo.
 
+## Renovaciones y borradores
+
+- Cada acceso puede registrar la fecha real del último cambio y un periodo de
+  renovación en meses.
+- Chrome muestra un recordatorio genérico siete días antes y al vencer; los
+  detalles solo se ven dentro de la bóveda desbloqueada.
+- Los formularios incompletos se guardan cifrados y se recuperan después de
+  cerrar el popup o reiniciar Chrome.
+
 ## Tecnología
 
 React, TypeScript, Tailwind CSS, Web Crypto API y Chrome Manifest V3.
