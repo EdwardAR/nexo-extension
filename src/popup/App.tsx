@@ -9,6 +9,8 @@ import { AddPasswordModal } from './components/AddPasswordModal'
 import { ViewPasswordModal } from './components/ViewPasswordModal'
 import { ToastContainer } from './components/Toast'
 import { ThemeToggle } from './components/ThemeToggle'
+import { DataManagementModal } from './components/DataManagementModal'
+import { createBackup, restoreBackup } from './lib/backup'
 
 export default function App() {
   const { unlocked, entries, loading, unlock, lock, addEntry, updateEntry, deleteEntry } = useVault()
@@ -16,6 +18,7 @@ export default function App() {
   const { toasts, addToast, removeToast } = useToast()
 
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showDataModal, setShowDataModal] = useState(false)
   const [viewingEntry, setViewingEntry] = useState<PasswordEntry | null>(null)
 
   const handleUnlock = useCallback(
@@ -92,6 +95,43 @@ export default function App() {
     [addToast]
   )
 
+  const handleExport = useCallback(async () => {
+    try {
+      const backup = await createBackup()
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `passsave-backup-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 0)
+      addToast('Respaldo exportado', 'success')
+      return true
+    } catch {
+      addToast('No se pudo exportar el respaldo', 'error')
+      return false
+    }
+  }, [addToast])
+
+  const handleImport = useCallback(
+    async (backup: unknown) => {
+      try {
+        await restoreBackup(backup)
+        await lock()
+        addToast('Respaldo restaurado. Desbloquéalo con su contraseña maestra.', 'success')
+        return true
+      } catch {
+        addToast('El archivo no es un respaldo compatible', 'error')
+        return false
+      }
+    },
+    [lock, addToast]
+  )
+
   if (!unlocked) {
     return (
       <>
@@ -112,6 +152,7 @@ export default function App() {
         onView={setViewingEntry}
         onCopy={handleCopy}
         onLock={handleLock}
+        onOpenData={() => setShowDataModal(true)}
         dark={dark}
         onToggleTheme={toggle}
       />
@@ -130,6 +171,14 @@ export default function App() {
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onCopy={handleCopy}
+        />
+      )}
+
+      {showDataModal && (
+        <DataManagementModal
+          onClose={() => setShowDataModal(false)}
+          onExport={handleExport}
+          onImport={handleImport}
         />
       )}
 

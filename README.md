@@ -40,6 +40,17 @@ continúa desbloqueada mientras el navegador siga abierto y se bloquea cuando:
 
 La contraseña maestra no se guarda en `chrome.storage.local`.
 
+## Importar y exportar
+
+Desde el icono de respaldo en la cabecera puedes:
+
+- exportar un archivo `passsave-backup-AAAA-MM-DD.json`;
+- importar un respaldo compatible y reemplazar la bóveda actual.
+
+El formato incluye un identificador y una versión para poder migrarlo en futuras
+versiones. Las credenciales permanecen cifradas y, después de restaurarlas, debes
+usar la contraseña maestra con la que se creó el respaldo.
+
 ## Tecnología
 
 React, TypeScript, Tailwind CSS, Web Crypto API y Chrome Manifest V3.

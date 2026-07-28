@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, LockKeyhole, ShieldCheck, X } from 'lucide-react'
+import { Search, Plus, LockKeyhole, ShieldCheck, X, DatabaseBackup } from 'lucide-react'
 import type { PasswordEntry } from '../types'
 import { PasswordCard } from './PasswordCard'
 import { EmptyState } from './EmptyState'
@@ -12,6 +12,7 @@ interface DashboardProps {
   onView: (entry: PasswordEntry) => void
   onCopy: (text: string, label: string) => void
   onLock: () => void
+  onOpenData: () => void
   dark: boolean
   onToggleTheme: () => void
 }
@@ -22,6 +23,7 @@ export function Dashboard({
   onView,
   onCopy,
   onLock,
+  onOpenData,
   dark,
   onToggleTheme,
 }: DashboardProps) {
@@ -55,6 +57,9 @@ export function Dashboard({
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle dark={dark} onToggle={onToggleTheme} inverse />
+            <IconButton label="Importar o exportar datos" onClick={onOpenData} tone="inverse">
+              <DatabaseBackup className="h-4 w-4" />
+            </IconButton>
             <IconButton label="Bloquear bóveda" onClick={onLock} tone="inverse">
               <LockKeyhole className="h-4 w-4" />
             </IconButton>

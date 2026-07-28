@@ -1,9 +1,9 @@
 import type { PasswordEntry, EncryptedVault } from '../types'
 import { encryptVault, decryptVault, hashPassword } from './crypto'
 
-const VAULT_KEY = 'password_vault'
-const HASH_KEY = 'master_password_hash'
-const SALT_KEY = 'master_salt'
+export const VAULT_KEY = 'password_vault'
+export const HASH_KEY = 'master_password_hash'
+export const SALT_KEY = 'master_salt'
 
 export async function isMasterPasswordSet(): Promise<boolean> {
   const result = await chrome.storage.local.get(HASH_KEY)
