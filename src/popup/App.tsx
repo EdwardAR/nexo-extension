@@ -12,6 +12,8 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { DataManagementModal } from './components/DataManagementModal'
 import { createBackup, restoreBackup } from './lib/backup'
 import { RenewalPanel } from './components/RenewalPanel'
+import { OnboardingSlides } from './components/OnboardingSlides'
+import { useOnboarding } from './hooks/useOnboarding'
 
 export default function App() {
   const {
@@ -20,6 +22,7 @@ export default function App() {
   } = useVault()
   const { dark, toggle } = useTheme()
   const { toasts, addToast, removeToast } = useToast()
+  const { showOnboarding, completeOnboarding } = useOnboarding()
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [showDataModal, setShowDataModal] = useState(false)
@@ -158,6 +161,19 @@ export default function App() {
     },
     [lock, addToast]
   )
+
+  if (showOnboarding === null) return null
+
+  if (showOnboarding) {
+    return (
+      <>
+        <div className="absolute top-3 right-3 z-10">
+          <ThemeToggle dark={dark} onToggle={toggle} />
+        </div>
+        <OnboardingSlides onFinish={completeOnboarding} />
+      </>
+    )
+  }
 
   if (!unlocked) {
     return (
