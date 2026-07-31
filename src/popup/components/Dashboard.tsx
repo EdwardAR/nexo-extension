@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, LockKeyhole, ShieldCheck, X, DatabaseBackup, BellRing } from 'lucide-react'
+import { Search, Plus, LockKeyhole, ShieldCheck, X, DatabaseBackup, BellRing, MousePointerClick } from 'lucide-react'
 import type { PasswordEntry } from '../types'
 import { PasswordCard } from './PasswordCard'
 import { EmptyState } from './EmptyState'
@@ -15,6 +15,7 @@ interface DashboardProps {
   onLock: () => void
   onOpenData: () => void
   onOpenRenewals: () => void
+  onOpenAutomations: () => void
   dark: boolean
   onToggleTheme: () => void
 }
@@ -27,6 +28,7 @@ export function Dashboard({
   onLock,
   onOpenData,
   onOpenRenewals,
+  onOpenAutomations,
   dark,
   onToggleTheme,
 }: DashboardProps) {
@@ -76,6 +78,9 @@ export function Dashboard({
             </div>
             <IconButton label="Importar o exportar datos" onClick={onOpenData} tone="inverse">
               <DatabaseBackup className="h-4 w-4" />
+            </IconButton>
+            <IconButton label="Automatizaciones de clics" onClick={onOpenAutomations} tone="inverse">
+              <MousePointerClick className="h-4 w-4" />
             </IconButton>
             <IconButton label="Bloquear bóveda" onClick={onLock} tone="inverse">
               <LockKeyhole className="h-4 w-4" />

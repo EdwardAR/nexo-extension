@@ -1,6 +1,6 @@
 {
   "name": "password-vault",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Password manager browser extension with autofill",
   "private": true,
   "type": "module",

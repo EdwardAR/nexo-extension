@@ -14,6 +14,7 @@ import { createBackup, restoreBackup } from './lib/backup'
 import { RenewalPanel } from './components/RenewalPanel'
 import { OnboardingSlides } from './components/OnboardingSlides'
 import { useOnboarding } from './hooks/useOnboarding'
+import { AutomationPanel } from './components/AutomationPanel'
 
 export default function App() {
   const {
@@ -27,6 +28,7 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showDataModal, setShowDataModal] = useState(false)
   const [showRenewalPanel, setShowRenewalPanel] = useState(false)
+  const [showAutomationPanel, setShowAutomationPanel] = useState(false)
   const [viewingEntry, setViewingEntry] = useState<PasswordEntry | null>(null)
   const draftOpenedRef = useRef(false)
 
@@ -187,6 +189,18 @@ export default function App() {
     )
   }
 
+  if (showAutomationPanel) {
+    return (
+      <>
+        <AutomationPanel
+          onClose={() => setShowAutomationPanel(false)}
+          onToast={addToast}
+        />
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </>
+    )
+  }
+
   return (
     <>
       <Dashboard
@@ -197,6 +211,7 @@ export default function App() {
         onLock={handleLock}
         onOpenData={() => setShowDataModal(true)}
         onOpenRenewals={() => setShowRenewalPanel(true)}
+        onOpenAutomations={() => setShowAutomationPanel(true)}
         dark={dark}
         onToggleTheme={toggle}
       />

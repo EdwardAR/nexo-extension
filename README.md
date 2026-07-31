@@ -63,3 +63,18 @@ usar la contraseña maestra con la que se creó el respaldo.
 ## Tecnología
 
 React, TypeScript, Tailwind CSS, Web Crypto API y Chrome Manifest V3.
+
+## Automatizaciones de clics
+
+El botón con el cursor en la cabecera permite crear automatizaciones asociadas a
+una URL:
+
+1. Indica un nombre y la URL, y pulsa **Empezar a grabar clics**.
+2. Realiza los clics en la página y pulsa **Terminar y guardar** en la barra flotante.
+3. Abre de nuevo el módulo: la secuencia aparecerá en **Secuencias guardadas**.
+4. Usa **Ejecutar** para probarla o **Programar** para definir su franja horaria.
+
+Al finalizar se muestra una notificación y se reproduce un aviso. Solo se
+registran clics y tiempos entre ellos; no se capturan teclas ni valores escritos.
+Los cambios importantes en la estructura HTML de una página pueden requerir
+volver a grabar la secuencia.
