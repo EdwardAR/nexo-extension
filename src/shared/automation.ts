@@ -4,7 +4,9 @@ export const AUTOMATION_ALARM_PREFIX = 'click-automation:'
 
 export interface AutomationStep {
   selector: string
+  fallbackSelectors?: string[]
   pageUrl: string
+  frameUrl?: string
   delayMs: number
   label: string
 }

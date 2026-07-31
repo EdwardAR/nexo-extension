@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Password Vault",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Secure password manager with autofill",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
@@ -10,6 +10,7 @@
     "storage",
     "activeTab",
     "tabs",
+    "webNavigation",
     "clipboardWrite",
     "notifications",
     "alarms",
@@ -33,7 +34,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/autofill.ts-BNk8HILD.js"
+        "assets/autofill.ts-DBI9-56e.js"
       ],
       "matches": [
         "<all_urls>"
@@ -41,7 +42,9 @@
       "css": [
         "src/content/content.css"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_about_blank": true
     }
   ],
   "icons": {
@@ -55,7 +58,7 @@
         "<all_urls>"
       ],
       "resources": [
-        "assets/autofill.ts-BNk8HILD.js"
+        "assets/autofill.ts-DBI9-56e.js"
       ],
       "use_dynamic_url": false
     }

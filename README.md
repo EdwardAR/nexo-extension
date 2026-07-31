@@ -78,3 +78,8 @@ Al finalizar se muestra una notificación y se reproduce un aviso. Solo se
 registran clics y tiempos entre ellos; no se capturan teclas ni valores escritos.
 Los cambios importantes en la estructura HTML de una página pueden requerir
 volver a grabar la secuencia.
+
+La grabación funciona también dentro de `iframe`, como los usados por Power
+Apps. Para cada control se conservan varios selectores alternativos y su frame
+de origen. Después de actualizar la extensión, recarga por completo la página
+antes de iniciar una nueva grabación.

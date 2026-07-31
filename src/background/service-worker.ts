@@ -29,6 +29,8 @@ interface AutomationRecordingSession {
   lastClickAt: number
 }
 
+let recordingWriteQueue: Promise<unknown> = Promise.resolve()
+
 async function getSession(): Promise<VaultSession | null> {
   const result = await chrome.storage.session.get(SESSION_KEY)
   return result[SESSION_KEY] ?? null
@@ -105,10 +107,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         return startAutomationRecording(message.id)
 
       case 'RECORD_AUTOMATION_CLICK':
-        return recordAutomationClick(_sender.tab?.id, message.step)
+        return queueRecordingClick(_sender, message.step)
 
       case 'FINISH_AUTOMATION_RECORDING':
-        return finishAutomationRecording(_sender.tab?.id)
+        return queueFinishRecording(_sender.tab?.id)
 
       case 'GET_ACTIVE_RECORDING':
         return getActiveRecording(_sender.tab?.id)
@@ -329,7 +331,11 @@ async function startAutomationRecording(id: string) {
   return { success: true }
 }
 
-async function recordAutomationClick(tabId: number | undefined, step: Omit<AutomationStep, 'delayMs'>) {
+async function recordAutomationClick(
+  sender: chrome.runtime.MessageSender,
+  step: Omit<AutomationStep, 'delayMs'>
+) {
+  const tabId = sender.tab?.id
   const result = await chrome.storage.session.get(AUTOMATION_RECORDING_SESSION_KEY)
   const session = result[AUTOMATION_RECORDING_SESSION_KEY] as AutomationRecordingSession | undefined
   if (!session || session.tabId !== tabId) return { success: false, error: 'No hay una grabación activa' }
@@ -339,16 +345,45 @@ async function recordAutomationClick(tabId: number | undefined, step: Omit<Autom
   if (index === -1) return { success: false, error: 'Automatización no encontrada' }
   const now = Date.now()
   const delayMs = Math.min(15_000, Math.max(300, now - session.lastClickAt))
+  const recordedStep: AutomationStep = {
+    ...step,
+    pageUrl: sender.tab?.url || step.pageUrl,
+    frameUrl: sender.url || step.frameUrl || step.pageUrl,
+    delayMs,
+  }
   automations[index] = {
     ...automations[index],
-    steps: [...automations[index].steps, { ...step, delayMs }],
+    steps: [...automations[index].steps, recordedStep],
     updatedAt: now,
   }
   await saveAutomations(automations)
   await chrome.storage.session.set({
     [AUTOMATION_RECORDING_SESSION_KEY]: { ...session, lastClickAt: now },
   })
-  return { success: true, count: automations[index].steps.length }
+  const count = automations[index].steps.length
+  if (tabId !== undefined) {
+    void chrome.tabs.sendMessage(tabId, {
+      action: 'UPDATE_RECORDING_COUNT',
+      count,
+      label: recordedStep.label,
+    }, { frameId: 0 }).catch(() => undefined)
+  }
+  return { success: true, count }
+}
+
+function queueRecordingClick(
+  sender: chrome.runtime.MessageSender,
+  step: Omit<AutomationStep, 'delayMs'>
+) {
+  const operation = recordingWriteQueue.then(() => recordAutomationClick(sender, step))
+  recordingWriteQueue = operation.catch(() => undefined)
+  return operation
+}
+
+function queueFinishRecording(tabId: number | undefined) {
+  const operation = recordingWriteQueue.then(() => finishAutomationRecording(tabId))
+  recordingWriteQueue = operation.catch(() => undefined)
+  return operation
 }
 
 async function finishAutomationRecording(tabId: number | undefined) {
@@ -393,6 +428,31 @@ function samePage(first?: string, second?: string) {
   } catch {
     return false
   }
+}
+
+function sameFramePage(first?: string, second?: string) {
+  if (!first || !second) return false
+  try {
+    const a = new URL(first)
+    const b = new URL(second)
+    return a.origin === b.origin && a.pathname === b.pathname
+  } catch {
+    return false
+  }
+}
+
+async function getStepFrameId(
+  tabId: number,
+  step: AutomationStep,
+  topPageUrl?: string
+) {
+  if (!step.frameUrl || sameFramePage(step.frameUrl, topPageUrl)) return 0
+  const frames = await chrome.webNavigation.getAllFrames({ tabId }) || []
+  const exact = frames.find((frame) => frame.url === step.frameUrl)
+  if (exact) return exact.frameId
+  const compatible = frames.find((frame) => sameFramePage(frame.url, step.frameUrl))
+  if (compatible) return compatible.frameId
+  throw new Error(`No se encontró el frame de “${step.label}”`)
 }
 
 async function waitForTab(tabId: number) {
@@ -470,6 +530,9 @@ async function runAutomation(id: string, scheduled: boolean) {
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'PLAY_AUTOMATION_STEP',
         selector: step.selector,
+        fallbackSelectors: step.fallbackSelectors,
+      }, {
+        frameId: await getStepFrameId(tab.id, step, (await chrome.tabs.get(tab.id)).url),
       })
       if (!response?.success) throw new Error(response?.error || `No se pudo pulsar “${step.label}”`)
     }

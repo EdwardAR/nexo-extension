@@ -244,6 +244,10 @@ function observeNewInputs() {
 
 let automationRecording = false
 let recordedClickCount = 0
+let confirmedClickCount = 0
+let pendingClickCount = 0
+let recordingCounterElement: HTMLElement | null = null
+let recordingLastStepElement: HTMLElement | null = null
 
 function escapeSelector(value: string) {
   return CSS.escape(value)
@@ -257,17 +261,37 @@ function isUniqueSelector(selector: string) {
   }
 }
 
-function getElementSelector(element: Element): string {
-  if (element.id) {
-    const selector = `#${escapeSelector(element.id)}`
-    if (isUniqueSelector(selector)) return selector
+function getElementSelectors(element: Element): string[] {
+  const selectors: string[] = []
+  const addUnique = (selector: string) => {
+    if (selector && isUniqueSelector(selector) && !selectors.includes(selector)) {
+      selectors.push(selector)
+    }
   }
 
-  for (const attribute of ['data-testid', 'data-test', 'data-cy', 'name', 'aria-label']) {
+  if (element.id) {
+    addUnique(`#${escapeSelector(element.id)}`)
+  }
+
+  for (const attribute of [
+    'data-control-name',
+    'data-testid',
+    'data-test',
+    'data-cy',
+    'aria-label',
+    'name',
+    'title',
+  ]) {
     const value = element.getAttribute(attribute)
     if (!value) continue
-    const selector = `${element.tagName.toLowerCase()}[${attribute}="${escapeSelector(value)}"]`
-    if (isUniqueSelector(selector)) return selector
+    addUnique(`${element.tagName.toLowerCase()}[${attribute}="${escapeSelector(value)}"]`)
+    addUnique(`[${attribute}="${escapeSelector(value)}"]`)
+  }
+
+  const role = element.getAttribute('role')
+  const ariaLabel = element.getAttribute('aria-label')
+  if (role && ariaLabel) {
+    addUnique(`[role="${escapeSelector(role)}"][aria-label="${escapeSelector(ariaLabel)}"]`)
   }
 
   const parts: string[] = []
@@ -290,14 +314,15 @@ function getElementSelector(element: Element): string {
     }
     parts.unshift(part)
     const selector = parts.join(' > ')
-    if (isUniqueSelector(selector)) return selector
+    addUnique(selector)
     current = parentElement
   }
-  return parts.join(' > ')
+  return selectors
 }
 
 function getClickLabel(element: Element) {
   return (
+    element.getAttribute('data-control-name') ||
     element.getAttribute('aria-label') ||
     element.getAttribute('title') ||
     element.textContent?.trim().replace(/\s+/g, ' ').slice(0, 80) ||
@@ -305,71 +330,156 @@ function getClickLabel(element: Element) {
   )
 }
 
+function getClickableElement(event: MouseEvent): Element | null {
+  const candidates = event.composedPath().filter(
+    (item): item is Element => item instanceof Element
+  )
+  const clickableSelector = [
+    '[data-control-name]',
+    '[data-testid]',
+    'button',
+    'a',
+    'input',
+    'select',
+    '[role="button"]',
+    '[role="menuitem"]',
+    '[role="option"]',
+    '[role="tab"]',
+    '[onclick]',
+    '[tabindex]',
+  ].join(',')
+
+  for (const candidate of candidates) {
+    if (candidate.matches(clickableSelector)) return candidate
+    const closest = candidate.closest(clickableSelector)
+    if (closest) return closest
+  }
+  return candidates[0] || null
+}
+
 function updateRecordingBadge() {
-  const counter = document.querySelector<HTMLElement>('[data-pv-recording-count]')
-  if (counter) counter.textContent = `${recordedClickCount} clic${recordedClickCount === 1 ? '' : 's'}`
+  if (recordingCounterElement) {
+    recordingCounterElement.textContent = String(recordedClickCount)
+  }
 }
 
 function showRecordingToolbar(initialCount = 0) {
-  recordedClickCount = initialCount
+  confirmedClickCount = Math.max(confirmedClickCount, initialCount)
+  recordedClickCount = confirmedClickCount + pendingClickCount
   automationRecording = true
-  document.querySelector('[data-pv-automation-toolbar]')?.remove()
+  if (window !== window.top) return
+  const existing = document.querySelector('[data-pv-automation-toolbar]')
+  if (existing) {
+    updateRecordingBadge()
+    return
+  }
 
   const toolbar = document.createElement('div')
   toolbar.dataset.pvAutomationToolbar = 'true'
   toolbar.style.cssText = [
     'position:fixed', 'right:18px', 'bottom:18px', 'z-index:2147483647',
-    'display:flex', 'align-items:center', 'gap:10px', 'padding:10px 12px',
-    'border-radius:12px', 'background:#0f172a', 'color:white',
-    'font:600 13px/1.2 system-ui,sans-serif', 'box-shadow:0 8px 30px rgba(0,0,0,.3)',
+    'display:grid', 'grid-template-columns:auto 1fr', 'gap:10px 12px', 'padding:12px',
+    'min-width:250px', 'border:1px solid rgba(255,255,255,.14)',
+    'border-radius:16px', 'background:linear-gradient(145deg,#0f172a,#1e293b)', 'color:white',
+    'font:600 13px/1.2 system-ui,sans-serif', 'box-shadow:0 16px 42px rgba(15,23,42,.38)',
   ].join(';')
   toolbar.innerHTML = `
-    <span style="width:9px;height:9px;border-radius:999px;background:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.2)"></span>
-    <span>Grabando · <span data-pv-recording-count></span></span>
-    <button data-pv-stop-recording style="border:0;border-radius:8px;padding:7px 10px;background:#fff;color:#0f172a;font:700 12px system-ui;cursor:pointer">Terminar y guardar</button>
+    <span style="grid-row:1/3;display:flex;width:42px;height:42px;align-items:center;justify-content:center;border-radius:12px;background:rgba(239,68,68,.14)">
+      <span style="width:11px;height:11px;border-radius:999px;background:#ef4444;box-shadow:0 0 0 5px rgba(239,68,68,.16)"></span>
+    </span>
+    <span style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <span style="font-size:12px;color:#cbd5e1">Grabando secuencia</span>
+      <strong style="display:flex;align-items:baseline;gap:4px;color:#fff">
+        <span data-pv-recording-count style="font-size:20px;line-height:1">0</span>
+        <small style="font-size:10px;color:#94a3b8">CLICS</small>
+      </strong>
+    </span>
+    <span data-pv-recording-last style="max-width:185px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#94a3b8">Esperando el primer clic…</span>
+    <button data-pv-stop-recording style="grid-column:1/3;border:0;border-radius:10px;padding:9px 12px;background:#fff;color:#0f172a;font:700 12px system-ui;cursor:pointer">Terminar y guardar</button>
   `
   document.documentElement.appendChild(toolbar)
+  recordingCounterElement = toolbar.querySelector('[data-pv-recording-count]')
+  recordingLastStepElement = toolbar.querySelector('[data-pv-recording-last]')
   updateRecordingBadge()
 
-  toolbar.querySelector('[data-pv-stop-recording]')?.addEventListener('click', async (event) => {
+  const stopButton = toolbar.querySelector<HTMLButtonElement>('[data-pv-stop-recording]')
+  stopButton?.addEventListener('click', async (event) => {
     event.preventDefault()
     event.stopPropagation()
     automationRecording = false
-    toolbar.remove()
-    await chrome.runtime.sendMessage({ action: 'FINISH_AUTOMATION_RECORDING' })
+    stopButton.disabled = true
+    stopButton.textContent = 'Guardando secuencia…'
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'FINISH_AUTOMATION_RECORDING',
+      })
+      if (!response?.success) throw new Error(response?.error || 'No se pudo guardar')
+      toolbar.remove()
+      recordingCounterElement = null
+      recordingLastStepElement = null
+      recordedClickCount = 0
+      confirmedClickCount = 0
+      pendingClickCount = 0
+    } catch {
+      automationRecording = true
+      stopButton.disabled = false
+      stopButton.textContent = 'Reintentar guardar'
+      if (recordingLastStepElement) {
+        recordingLastStepElement.textContent = 'No se pudo guardar. Inténtalo otra vez.'
+        recordingLastStepElement.style.color = '#fca5a5'
+      }
+    }
   })
 }
 
 document.addEventListener('click', (event) => {
   if (!automationRecording) return
-  const element = event.target instanceof Element ? event.target.closest('button, a, input, select, [role="button"], [onclick]') || event.target : null
+  const element = getClickableElement(event)
   if (!element || element.closest('[data-pv-automation-toolbar]')) return
-  const selector = getElementSelector(element)
-  if (!selector) return
-  recordedClickCount += 1
+  const selectors = getElementSelectors(element)
+  if (!selectors.length) return
+  const label = getClickLabel(element)
+  pendingClickCount += 1
+  recordedClickCount = confirmedClickCount + pendingClickCount
+  if (recordingLastStepElement) recordingLastStepElement.textContent = `Último: ${label}`
   updateRecordingBadge()
   void chrome.runtime.sendMessage({
     action: 'RECORD_AUTOMATION_CLICK',
     step: {
-      selector,
+      selector: selectors[0],
+      fallbackSelectors: selectors.slice(1),
       pageUrl: window.location.href,
-      label: getClickLabel(element),
+      frameUrl: window.location.href,
+      label,
     },
-  }).catch(() => undefined)
+  }).then((response) => {
+    pendingClickCount = Math.max(0, pendingClickCount - 1)
+    if (response?.success && typeof response.count === 'number') {
+      confirmedClickCount = Math.max(confirmedClickCount, response.count)
+    }
+    recordedClickCount = confirmedClickCount + pendingClickCount
+    updateRecordingBadge()
+  }).catch(() => {
+    pendingClickCount = Math.max(0, pendingClickCount - 1)
+    recordedClickCount = confirmedClickCount + pendingClickCount
+    updateRecordingBadge()
+  })
 }, true)
 
-async function findElement(selector: string): Promise<HTMLElement | null> {
+async function findElement(selectors: string[]): Promise<HTMLElement | null> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
-    const element = document.querySelector(selector)
-    if (element instanceof HTMLElement) return element
+    for (const selector of selectors) {
+      const element = document.querySelector(selector)
+      if (element instanceof HTMLElement) return element
+    }
     await new Promise((resolve) => setTimeout(resolve, 250))
   }
   return null
 }
 
-async function playAutomationStep(selector: string) {
-  const element = await findElement(selector)
-  if (!element) throw new Error(`No se encontró el elemento: ${selector}`)
+async function playAutomationStep(selectors: string[]) {
+  const element = await findElement(selectors)
+  if (!element) throw new Error(`No se encontró el elemento: ${selectors[0]}`)
   element.scrollIntoView({ behavior: 'smooth', block: 'center' })
   const previousOutline = element.style.outline
   element.style.outline = '3px solid #6366f1'
@@ -387,10 +497,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return
   }
   if (message.action === 'PLAY_AUTOMATION_STEP') {
-    playAutomationStep(message.selector)
+    playAutomationStep([
+      message.selector,
+      ...(Array.isArray(message.fallbackSelectors) ? message.fallbackSelectors : []),
+    ])
       .then(() => sendResponse({ success: true }))
       .catch((error) => sendResponse({ success: false, error: String(error) }))
     return true
+  }
+  if (message.action === 'UPDATE_RECORDING_COUNT' && window === window.top) {
+    if (typeof message.count === 'number') {
+      confirmedClickCount = Math.max(confirmedClickCount, message.count)
+      recordedClickCount = confirmedClickCount + pendingClickCount
+      updateRecordingBadge()
+    }
+    if (recordingLastStepElement && message.label) {
+      recordingLastStepElement.textContent = `Último: ${message.label}`
+    }
+    sendResponse({ success: true })
   }
 })
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   CalendarClock,
@@ -33,6 +33,10 @@ export function AutomationPanel({ onClose, onToast }: AutomationPanelProps) {
   const [startAt, setStartAt] = useState('')
   const [endAt, setEndAt] = useState('')
   const [busy, setBusy] = useState('')
+  const stats = useMemo(() => ({
+    clicks: automations.reduce((total, automation) => total + automation.steps.length, 0),
+    scheduled: automations.filter((automation) => automation.schedule?.enabled).length,
+  }), [automations])
 
   useEffect(() => {
     void chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
@@ -148,9 +152,27 @@ export function AutomationPanel({ onClose, onToast }: AutomationPanelProps) {
       </header>
 
       <main className="flex-1 overflow-y-auto p-4">
-        <section className="mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-800">
+        <div className="mb-4 grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-center shadow-sm dark:border-slate-800 dark:bg-slate-800">
+            <strong className="block text-lg text-slate-900 dark:text-white">{automations.length}</strong>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Secuencias</span>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-center shadow-sm dark:border-slate-800 dark:bg-slate-800">
+            <strong className="block text-lg text-vault-600 dark:text-vault-300">{stats.clicks}</strong>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Clics</span>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-2 py-2.5 text-center shadow-sm dark:border-slate-800 dark:bg-slate-800">
+            <strong className="block text-lg text-amber-600 dark:text-amber-300">{stats.scheduled}</strong>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Programadas</span>
+          </div>
+        </div>
+
+        <section className="relative mb-5 overflow-hidden rounded-2xl border border-vault-100 bg-white p-4 shadow-sm dark:border-vault-900 dark:bg-slate-800">
+          <div className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-vault-100/70 blur-2xl dark:bg-vault-900/30" />
           <div className="mb-3 flex items-center gap-2">
-            <CircleDot className="h-4 w-4 text-red-500" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 dark:bg-red-950/40">
+              <CircleDot className="h-4 w-4 text-red-500" />
+            </span>
             <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">Grabar nueva secuencia</h2>
           </div>
           <p className="mb-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
@@ -178,6 +200,11 @@ export function AutomationPanel({ onClose, onToast }: AutomationPanelProps) {
               <CircleDot className="h-4 w-4" />
               Empezar a grabar clics
             </button>
+            <div className="grid grid-cols-3 gap-1 pt-1 text-center text-[9px] font-bold uppercase tracking-wide text-slate-400">
+              <span>1 · Graba</span>
+              <span>2 · Guarda</span>
+              <span>3 · Programa</span>
+            </div>
           </div>
         </section>
 
@@ -196,7 +223,7 @@ export function AutomationPanel({ onClose, onToast }: AutomationPanelProps) {
           ) : (
             <div className="space-y-2">
               {automations.map((automation) => (
-                <article key={automation.id} className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
+                <article key={automation.id} className="rounded-xl border border-slate-200 border-l-4 border-l-vault-400 bg-white p-3 shadow-sm transition hover:border-vault-300 hover:shadow-md dark:border-slate-700 dark:border-l-vault-600 dark:bg-slate-800">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{automation.name}</h3>
