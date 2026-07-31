@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { LockKeyhole, Eye, EyeOff, ShieldCheck, Sparkles, Shield } from 'lucide-react'
+import { LockKeyhole, Eye, EyeOff, Orbit, Shield } from 'lucide-react'
 import { IconButton } from './IconButton'
 
 interface LockScreenProps {
@@ -27,15 +27,15 @@ export function LockScreen({ onUnlock, loading }: LockScreenProps) {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-slate-50 px-7 py-8 dark:bg-slate-950">
       <div className="pointer-events-none absolute left-1/2 top-[-110px] h-72 w-72 -translate-x-1/2 rounded-full bg-vault-200/60 blur-3xl dark:bg-vault-900/40" />
-      <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-vault-500 to-vault-800 shadow-xl shadow-vault-500/25">
-        <ShieldCheck className="h-8 w-8 text-white" />
-        <Sparkles className="absolute -right-2 -top-2 h-5 w-5 text-vault-300" />
+      <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-[20px] bg-gradient-to-br from-slate-950 via-vault-700 to-cyan-600 shadow-xl shadow-vault-500/25">
+        <Orbit className="h-8 w-8 text-white" />
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-300 ring-2 ring-white/80" />
       </div>
 
-      <p className="relative text-xs font-bold uppercase tracking-[0.2em] text-vault-600 dark:text-vault-300">Tu bóveda personal</p>
-      <h1 className="relative mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Bienvenido a PassSave</h1>
+      <p className="relative text-xs font-bold uppercase tracking-[0.2em] text-vault-600 dark:text-vault-300">Tu centro digital</p>
+      <h1 className="relative mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Bienvenido a Nexo</h1>
       <p className="relative mb-8 mt-2 max-w-xs text-center text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-        Desbloquea tus accesos de forma segura.
+        Un solo lugar para tus accesos, horarios y automatizaciones.
       </p>
 
       <form onSubmit={handleSubmit} className="relative w-full max-w-xs space-y-4">

@@ -15,6 +15,7 @@ import { RenewalPanel } from './components/RenewalPanel'
 import { OnboardingSlides } from './components/OnboardingSlides'
 import { useOnboarding } from './hooks/useOnboarding'
 import { AutomationPanel } from './components/AutomationPanel'
+import { TimePanel } from './components/TimePanel'
 
 export default function App() {
   const {
@@ -29,6 +30,7 @@ export default function App() {
   const [showDataModal, setShowDataModal] = useState(false)
   const [showRenewalPanel, setShowRenewalPanel] = useState(false)
   const [showAutomationPanel, setShowAutomationPanel] = useState(false)
+  const [showTimePanel, setShowTimePanel] = useState(false)
   const [viewingEntry, setViewingEntry] = useState<PasswordEntry | null>(null)
   const draftOpenedRef = useRef(false)
 
@@ -136,7 +138,7 @@ export default function App() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `passsave-backup-${new Date().toISOString().slice(0, 10)}.json`
+      link.download = `nexo-backup-${new Date().toISOString().slice(0, 10)}.json`
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -201,6 +203,18 @@ export default function App() {
     )
   }
 
+  if (showTimePanel) {
+    return (
+      <>
+        <TimePanel
+          onClose={() => setShowTimePanel(false)}
+          onToast={addToast}
+        />
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </>
+    )
+  }
+
   return (
     <>
       <Dashboard
@@ -212,6 +226,7 @@ export default function App() {
         onOpenData={() => setShowDataModal(true)}
         onOpenRenewals={() => setShowRenewalPanel(true)}
         onOpenAutomations={() => setShowAutomationPanel(true)}
+        onOpenTime={() => setShowTimePanel(true)}
         dark={dark}
         onToggleTheme={toggle}
       />

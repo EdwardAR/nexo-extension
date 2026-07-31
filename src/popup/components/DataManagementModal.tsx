@@ -118,7 +118,7 @@ export function DataManagementModal({
               </span>
               <span className="flex-1">
                 <strong className="block text-sm text-slate-900 dark:text-slate-100">Importar respaldo</strong>
-                <small className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Restaura un archivo compatible de PassSave.</small>
+                <small className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Restaura un archivo compatible de Nexo o PassSave.</small>
               </span>
               <FileJson className="h-4 w-4 text-slate-400" />
             </button>

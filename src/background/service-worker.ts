@@ -13,6 +13,12 @@ import {
   type AutomationStep,
   type ClickAutomation,
 } from '../shared/automation'
+import {
+  loadReminders,
+  REMINDER_ALARM_PREFIX,
+  saveReminders,
+  type ScheduledReminder,
+} from '../shared/reminder'
 
 const SESSION_KEY = 'vaultSession'
 const RENEWAL_ALARM = 'checkRenewals'
@@ -41,14 +47,16 @@ async function clearSession() {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('Password Vault installed')
+  console.log('Nexo installed')
   scheduleRenewalChecks()
   void restoreAutomationAlarms()
+  void restoreReminderAlarms()
 })
 
 chrome.runtime.onStartup.addListener(() => {
   scheduleRenewalChecks()
   void restoreAutomationAlarms()
+  void restoreReminderAlarms()
 })
 
 chrome.windows.onRemoved.addListener(async () => {
@@ -119,6 +127,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         void runAutomation(message.id, false)
         return { success: true }
 
+      case 'SAVE_REMINDER':
+        return saveReminder(message.reminder)
+
+      case 'DELETE_REMINDER':
+        return deleteReminder(message.id)
+
       default:
         return { error: 'Unknown action' }
     }
@@ -135,6 +149,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === RENEWAL_ALARM) void checkRenewals()
   if (alarm.name.startsWith(AUTOMATION_ALARM_PREFIX)) {
     void runAutomation(alarm.name.slice(AUTOMATION_ALARM_PREFIX.length), true)
+  }
+  if (alarm.name.startsWith(REMINDER_ALARM_PREFIX)) {
+    void showReminder(alarm.name.slice(REMINDER_ALARM_PREFIX.length))
   }
 })
 
@@ -155,10 +172,82 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 })
 
 chrome.notifications.onClicked.addListener((notificationId) => {
-  if (notificationId === NOTIFICATION_ID || notificationId.startsWith('click-automation-result:')) {
+  if (notificationId === NOTIFICATION_ID || notificationId.startsWith('click-automation-result:') || notificationId.startsWith(REMINDER_ALARM_PREFIX)) {
     void chrome.action.openPopup().catch(() => undefined)
   }
 })
+
+function reminderAlarmName(id: string) {
+  return `${REMINDER_ALARM_PREFIX}${id}`
+}
+
+async function syncReminderAlarm(reminder: ScheduledReminder) {
+  await chrome.alarms.clear(reminderAlarmName(reminder.id))
+  if (reminder.enabled && reminder.scheduledAt > Date.now()) {
+    await chrome.alarms.create(reminderAlarmName(reminder.id), { when: reminder.scheduledAt })
+  }
+}
+
+async function restoreReminderAlarms() {
+  const reminders = await loadReminders()
+  await Promise.all(reminders.map(syncReminderAlarm))
+}
+
+async function saveReminder(candidate: unknown) {
+  if (!candidate || typeof candidate !== 'object') {
+    return { success: false, error: 'El recordatorio no es válido' }
+  }
+  const value = candidate as Partial<ScheduledReminder>
+  if (
+    typeof value.id !== 'string' ||
+    typeof value.title !== 'string' ||
+    typeof value.message !== 'string' ||
+    typeof value.scheduledAt !== 'number' ||
+    typeof value.enabled !== 'boolean' ||
+    typeof value.createdAt !== 'number' ||
+    (value.timeZone !== undefined && value.timeZone !== 'America/Lima' && value.timeZone !== 'Europe/Madrid') ||
+    !value.title.trim() ||
+    !Number.isFinite(value.scheduledAt)
+  ) return { success: false, error: 'El recordatorio no es válido' }
+
+  const candidateReminder = value as ScheduledReminder
+  const reminders = await loadReminders()
+  const index = reminders.findIndex((item) => item.id === candidateReminder.id)
+  const reminder: ScheduledReminder = {
+    ...candidateReminder,
+    title: candidateReminder.title.trim().slice(0, 60),
+    message: candidateReminder.message.trim().slice(0, 160),
+  }
+  if (index === -1) reminders.push(reminder)
+  else reminders[index] = reminder
+  await saveReminders(reminders)
+  await syncReminderAlarm(reminder)
+  return { success: true }
+}
+
+async function deleteReminder(id: string) {
+  const reminders = await loadReminders()
+  await saveReminders(reminders.filter((item) => item.id !== id))
+  await chrome.alarms.clear(reminderAlarmName(id))
+  return { success: true }
+}
+
+async function showReminder(id: string) {
+  const reminders = await loadReminders()
+  const index = reminders.findIndex((item) => item.id === id)
+  if (index === -1 || !reminders[index].enabled) return
+  const reminder = reminders[index]
+  await chrome.notifications.create(reminderAlarmName(id), {
+    type: 'basic',
+    iconUrl: 'public/icons/icon128.png',
+    title: reminder.title,
+    message: reminder.message || 'Tienes un recordatorio programado en Nexo.',
+    contextMessage: reminder.timeZone === 'Europe/Madrid' ? 'Horario de España' : 'Horario de Perú',
+    priority: 2,
+  })
+  reminders[index] = { ...reminder, enabled: false, notifiedAt: Date.now() }
+  await saveReminders(reminders)
+}
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && RENEWAL_SCHEDULE_KEY in changes) {

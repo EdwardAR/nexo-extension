@@ -1,6 +1,7 @@
-# Password Vault
+# Nexo
 
-Gestor de contraseñas para Chrome con cifrado local y autocompletado.
+Centro digital para Chrome con bóveda cifrada, autocompletado, renovaciones,
+automatizaciones, relojes internacionales y recordatorios.
 
 ## Desarrollo
 
@@ -44,7 +45,7 @@ La contraseña maestra no se guarda en `chrome.storage.local`.
 
 Desde el icono de respaldo en la cabecera puedes:
 
-- exportar un archivo `passsave-backup-AAAA-MM-DD.json`;
+- exportar un archivo `nexo-backup-AAAA-MM-DD.json`;
 - importar un respaldo compatible y reemplazar la bóveda actual.
 
 El formato incluye un identificador y una versión para poder migrarlo en futuras
@@ -88,3 +89,11 @@ La grabación se activa desde la pulsación física del puntero, por lo que tamb
 cuenta controles deshabilitados. Durante la ejecución se espera hasta 15
 segundos a que el control vuelva a estar habilitado antes de marcar el paso como
 fallido.
+
+## Horarios y recordatorios
+
+El botón del reloj abre un panel con la hora de Lima (`America/Lima`) y Madrid
+(`Europe/Madrid`). La zona de Madrid aplica automáticamente el cambio entre CET
+y CEST. Al crear una alerta puedes elegir si la fecha y hora corresponden a
+Perú o España; Nexo muestra la equivalencia en el otro país antes de guardarla.
+Chrome muestra la notificación aunque el popup esté cerrado.

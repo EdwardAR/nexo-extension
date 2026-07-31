@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, LockKeyhole, ShieldCheck, X, DatabaseBackup, BellRing, MousePointerClick } from 'lucide-react'
+import { Search, Plus, LockKeyhole, Orbit, X, DatabaseBackup, BellRing, MousePointerClick, Clock3, KeyRound } from 'lucide-react'
 import type { PasswordEntry } from '../types'
 import { PasswordCard } from './PasswordCard'
 import { EmptyState } from './EmptyState'
@@ -16,6 +16,7 @@ interface DashboardProps {
   onOpenData: () => void
   onOpenRenewals: () => void
   onOpenAutomations: () => void
+  onOpenTime: () => void
   dark: boolean
   onToggleTheme: () => void
 }
@@ -29,6 +30,7 @@ export function Dashboard({
   onOpenData,
   onOpenRenewals,
   onOpenAutomations,
+  onOpenTime,
   dark,
   onToggleTheme,
 }: DashboardProps) {
@@ -50,46 +52,61 @@ export function Dashboard({
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-900">
-      <header className="relative overflow-hidden bg-gradient-to-br from-vault-600 via-vault-700 to-vault-900 px-5 pb-5 pt-4">
-        <div className="pointer-events-none absolute -right-8 -top-12 h-32 w-32 rounded-full bg-white/10 blur-sm" />
+      <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-vault-900 to-cyan-900 px-5 pb-8 pt-4">
+        <div className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-cyan-300/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-36 w-36 rounded-full bg-vault-400/20 blur-3xl" />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/15 shadow-inner backdrop-blur">
-              <ShieldCheck className="h-5 w-5 text-white" />
+              <Orbit className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold tracking-tight text-white">PassSave</h1>
-              <p className="text-xs text-vault-100">
-                {entries.length} {entries.length === 1 ? 'acceso guardado' : 'accesos guardados'}
-              </p>
+              <h1 className="text-base font-bold tracking-tight text-white">Nexo</h1>
+              <p className="text-xs text-cyan-100/70">Tu centro digital</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle dark={dark} onToggle={onToggleTheme} inverse />
-            <div className="relative">
-              <IconButton label="Revisar renovaciones" onClick={onOpenRenewals} tone="inverse">
-                <BellRing className="h-4 w-4" />
-              </IconButton>
-              {renewalCount > 0 && (
-                <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-bold text-amber-950">
-                  {renewalCount > 9 ? '9+' : renewalCount}
-                </span>
-              )}
-            </div>
             <IconButton label="Importar o exportar datos" onClick={onOpenData} tone="inverse">
               <DatabaseBackup className="h-4 w-4" />
-            </IconButton>
-            <IconButton label="Automatizaciones de clics" onClick={onOpenAutomations} tone="inverse">
-              <MousePointerClick className="h-4 w-4" />
             </IconButton>
             <IconButton label="Bloquear bóveda" onClick={onLock} tone="inverse">
               <LockKeyhole className="h-4 w-4" />
             </IconButton>
           </div>
         </div>
+        <div className="mt-5 flex items-end justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200/70">Bóveda protegida</p>
+            <p className="mt-1 text-lg font-semibold text-white">{entries.length} {entries.length === 1 ? 'acceso seguro' : 'accesos seguros'}</p>
+          </div>
+          <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-[10px] font-bold text-emerald-200">● Activa</span>
+        </div>
       </header>
 
-      <div className="-mt-1 px-4 pb-4 pt-3">
+      <nav className="relative -mt-4 grid grid-cols-3 gap-2 px-4" aria-label="Módulos de Nexo">
+        <button onClick={onOpenTime} className="group rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-cyan-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-cyan-700">
+          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 transition group-hover:bg-cyan-100 dark:bg-cyan-950/60 dark:text-cyan-300"><Clock3 className="h-4 w-4" /></span>
+          <strong className="block text-xs text-slate-900 dark:text-white">Horarios</strong>
+          <small className="text-[10px] text-slate-400">Alertas</small>
+        </button>
+        <button onClick={onOpenAutomations} className="group rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-vault-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-vault-700">
+          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-vault-50 text-vault-600 transition group-hover:bg-vault-100 dark:bg-vault-950/60 dark:text-vault-300"><MousePointerClick className="h-4 w-4" /></span>
+          <strong className="block text-xs text-slate-900 dark:text-white">Flujos</strong>
+          <small className="text-[10px] text-slate-400">Automatizar</small>
+        </button>
+        <button onClick={onOpenRenewals} className="group relative rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-amber-700">
+          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition group-hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300"><BellRing className="h-4 w-4" /></span>
+          <strong className="block text-xs text-slate-900 dark:text-white">Renovar</strong>
+          <small className="text-[10px] text-slate-400">{renewalCount ? `${renewalCount} pendiente${renewalCount === 1 ? '' : 's'}` : 'Al día'}</small>
+          {renewalCount > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" />}
+        </button>
+      </nav>
+
+      <div className="px-4 pb-3 pt-4">
+        <div className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+          <KeyRound className="h-3.5 w-3.5 text-vault-500" /> Contraseñas
+        </div>
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-vault-600" />
           <input

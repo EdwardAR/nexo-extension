@@ -1,7 +1,7 @@
 {
-  "name": "password-vault",
-  "version": "1.2.3",
-  "description": "Password manager browser extension with autofill",
+  "name": "nexo-extension",
+  "version": "1.4.0",
+  "description": "Centro digital para contraseñas, alertas y automatizaciones",
   "private": true,
   "type": "module",
   "scripts": {

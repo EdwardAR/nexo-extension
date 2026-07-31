@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   ShieldCheck, KeyRound, Zap, ChevronRight, ArrowRight,
-  LockKeyhole, AlertTriangle, MousePointerClick,
+  LockKeyhole, AlertTriangle, MousePointerClick, Orbit, Clock3,
 } from 'lucide-react'
 
 interface OnboardingSlidesProps {
@@ -35,7 +35,7 @@ const slides: Slide[] = [
     title: 'Tu contraseña maestra',
     description:
       'Es la única clave que protege todas tus contraseñas. Elige algo largo y memorable, como una frase que solo tú conozcas.',
-    tip: 'PassSave nunca la almacena ni la transmite — solo tú la sabes. Si la olvidas no hay forma de recuperar tus datos.',
+    tip: 'Nexo nunca la almacena ni la transmite — solo tú la sabes. Si la olvidas no hay forma de recuperar tus datos.',
     tipIcon: AlertTriangle,
     tipColor: 'text-amber-700 dark:text-amber-300',
     tipBg: 'bg-amber-50 dark:bg-amber-950/30',
@@ -49,7 +49,7 @@ const slides: Slide[] = [
     title: 'Todo cifrado localmente',
     description:
       'Tus contraseñas se cifran con AES-256 directamente en tu navegador antes de guardarse. Ningún servidor externo recibe tus datos.',
-    tip: 'El cifrado ocurre en tu dispositivo. PassSave funciona completamente sin conexión a internet.',
+    tip: 'El cifrado ocurre en tu dispositivo. Nexo funciona completamente sin conexión a internet.',
     tipIcon: ShieldCheck,
     tipColor: 'text-emerald-700 dark:text-emerald-300',
     tipBg: 'bg-emerald-50 dark:bg-emerald-950/30',
@@ -68,6 +68,20 @@ const slides: Slide[] = [
     tipColor: 'text-sky-700 dark:text-sky-300',
     tipBg: 'bg-sky-50 dark:bg-sky-950/30',
     tipBorder: 'border-sky-200 dark:border-sky-900',
+  },
+  {
+    icon: Orbit,
+    iconBg: 'bg-cyan-50 dark:bg-cyan-950/40',
+    iconColor: 'text-cyan-700 dark:text-cyan-300',
+    badge: undefined,
+    title: 'Todo conectado en Nexo',
+    description:
+      'Consulta horarios de Perú y España, programa recordatorios, controla renovaciones y crea automatizaciones desde un mismo centro.',
+    tip: 'Elige el país al programar una alerta: Nexo convierte la hora y respeta automáticamente el horario de verano.',
+    tipIcon: Clock3,
+    tipColor: 'text-cyan-800 dark:text-cyan-200',
+    tipBg: 'bg-cyan-50 dark:bg-cyan-950/30',
+    tipBorder: 'border-cyan-200 dark:border-cyan-900',
   },
 ]
 

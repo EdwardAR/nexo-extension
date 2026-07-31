@@ -31,7 +31,7 @@ export function useAutomations() {
     if (!response?.success) {
       if (response?.error === 'Unknown action') {
         throw new Error(
-          'Edge está usando un proceso antiguo. Abre edge://extensions, pulsa Recargar en PassSave y vuelve a intentarlo.'
+          'Edge está usando un proceso antiguo. Abre edge://extensions, pulsa Recargar en Nexo y vuelve a intentarlo.'
         )
       }
       throw new Error(response?.error || 'No se pudo completar la operación')
