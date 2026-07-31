@@ -83,3 +83,8 @@ La grabación funciona también dentro de `iframe`, como los usados por Power
 Apps. Para cada control se conservan varios selectores alternativos y su frame
 de origen. Después de actualizar la extensión, recarga por completo la página
 antes de iniciar una nueva grabación.
+
+La grabación se activa desde la pulsación física del puntero, por lo que también
+cuenta controles deshabilitados. Durante la ejecución se espera hasta 15
+segundos a que el control vuelva a estar habilitado antes de marcar el paso como
+fallido.

@@ -30,6 +30,12 @@ interface AutomationRecordingSession {
 }
 
 let recordingWriteQueue: Promise<unknown> = Promise.resolve()
+const pendingStepResults = new Map<string, {
+  tabId: number
+  resolve: () => void
+  reject: (error: Error) => void
+  timeout: ReturnType<typeof setTimeout>
+}>()
 
 async function getSession(): Promise<VaultSession | null> {
   const result = await chrome.storage.session.get(SESSION_KEY)
@@ -118,6 +124,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       case 'RUN_AUTOMATION':
         void runAutomation(message.id, false)
         return { success: true }
+
+      case 'AUTOMATION_STEP_RESULT':
+        return handleAutomationStepResult(_sender, message)
 
       default:
         return { error: 'Unknown action' }
@@ -366,6 +375,7 @@ async function recordAutomationClick(
       action: 'UPDATE_RECORDING_COUNT',
       count,
       label: recordedStep.label,
+      disabledWhenRecorded: recordedStep.disabledWhenRecorded,
     }, { frameId: 0 }).catch(() => undefined)
   }
   return { success: true, count }
@@ -477,6 +487,56 @@ async function pause(milliseconds: number) {
   await new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
+function handleAutomationStepResult(
+  sender: chrome.runtime.MessageSender,
+  message: { requestId?: string; success?: boolean; error?: string }
+) {
+  if (!message.requestId) return { success: false }
+  const pending = pendingStepResults.get(message.requestId)
+  if (!pending || pending.tabId !== sender.tab?.id) return { success: false }
+  clearTimeout(pending.timeout)
+  pendingStepResults.delete(message.requestId)
+  if (message.success) pending.resolve()
+  else pending.reject(new Error(message.error || 'No se pudo preparar el clic'))
+  return { success: true }
+}
+
+async function executeAutomationStep(
+  tabId: number,
+  frameId: number,
+  step: AutomationStep
+) {
+  const requestId = crypto.randomUUID()
+  const result = new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      pendingStepResults.delete(requestId)
+      reject(new Error(`El control “${step.label}” no respondió a tiempo`))
+    }, 25_000)
+    pendingStepResults.set(requestId, { tabId, resolve, reject, timeout })
+  })
+
+  try {
+    const acknowledgement = await chrome.tabs.sendMessage(tabId, {
+      action: 'PLAY_AUTOMATION_STEP',
+      requestId,
+      selector: step.selector,
+      fallbackSelectors: step.fallbackSelectors,
+    }, { frameId })
+    if (!acknowledgement?.accepted) {
+      throw new Error(acknowledgement?.error || `El frame no aceptó el paso “${step.label}”`)
+    }
+  } catch (error) {
+    const pending = pendingStepResults.get(requestId)
+    if (pending) {
+      clearTimeout(pending.timeout)
+      pendingStepResults.delete(requestId)
+      pending.reject(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  await result
+}
+
 async function setAutomationResult(id: string, updates: Partial<ClickAutomation>) {
   const automations = await loadAutomations()
   const index = automations.findIndex((item) => item.id === id)
@@ -527,14 +587,12 @@ async function runAutomation(id: string, scheduled: boolean) {
       } else if (current.status !== 'complete') {
         await waitForTab(tab.id)
       }
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'PLAY_AUTOMATION_STEP',
-        selector: step.selector,
-        fallbackSelectors: step.fallbackSelectors,
-      }, {
-        frameId: await getStepFrameId(tab.id, step, (await chrome.tabs.get(tab.id)).url),
-      })
-      if (!response?.success) throw new Error(response?.error || `No se pudo pulsar “${step.label}”`)
+      const frameId = await getStepFrameId(
+        tab.id,
+        step,
+        (await chrome.tabs.get(tab.id)).url
+      )
+      await executeAutomationStep(tab.id, frameId, step)
     }
 
     await setAutomationResult(id, {

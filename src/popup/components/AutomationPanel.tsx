@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
+  AlertTriangle,
   CalendarClock,
+  CheckCircle2,
   CircleDot,
   Clock3,
+  LoaderCircle,
   MousePointerClick,
   Play,
   Save,
@@ -23,6 +26,14 @@ function toInputDate(timestamp?: number) {
   if (!timestamp) return ''
   const date = new Date(timestamp - new Date(timestamp).getTimezoneOffset() * 60_000)
   return date.toISOString().slice(0, 16)
+}
+
+const runStatus = {
+  idle: { label: 'Lista', icon: CheckCircle2, color: 'text-slate-500 dark:text-slate-400' },
+  recording: { label: 'Grabando', icon: CircleDot, color: 'text-red-600 dark:text-red-400' },
+  running: { label: 'Ejecutando', icon: LoaderCircle, color: 'text-sky-600 dark:text-sky-400' },
+  completed: { label: 'Completada', icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400' },
+  failed: { label: 'Requiere revisión', icon: AlertTriangle, color: 'text-red-600 dark:text-red-400' },
 }
 
 export function AutomationPanel({ onClose, onToast }: AutomationPanelProps) {
@@ -205,6 +216,9 @@ export function AutomationPanel({ onClose, onToast }: AutomationPanelProps) {
               <span>2 · Guarda</span>
               <span>3 · Programa</span>
             </div>
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+              Los controles deshabilitados también se registran y se marcan en color ámbar.
+            </p>
           </div>
         </section>
 
@@ -242,8 +256,29 @@ export function AutomationPanel({ onClose, onToast }: AutomationPanelProps) {
                     </span>
                   </div>
 
+                  {(() => {
+                    const status = runStatus[automation.lastStatus]
+                    const StatusIcon = status.icon
+                    const disabledSteps = automation.steps.filter(
+                      (step) => step.disabledWhenRecorded
+                    ).length
+                    return (
+                      <div className="mt-2 flex items-center gap-2 text-[11px]">
+                        <span className={`flex items-center gap-1 font-semibold ${status.color}`}>
+                          <StatusIcon className={`h-3 w-3 ${automation.lastStatus === 'running' ? 'animate-spin' : ''}`} />
+                          {status.label}
+                        </span>
+                        {disabledSteps > 0 && (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                            {disabledSteps} deshabilitado{disabledSteps === 1 ? '' : 's'}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
+
                   {automation.schedule?.enabled && (
-                    <p className="mt-2 flex items-center gap-1 text-[11px] text-vault-600 dark:text-vault-300">
+                    <p className="mt-2 flex items-center gap-1 rounded-lg bg-vault-50 px-2 py-1.5 text-[11px] font-medium text-vault-700 dark:bg-vault-950/40 dark:text-vault-300">
                       <CalendarClock className="h-3 w-3" />
                       Programada: {new Date(automation.schedule.startAt).toLocaleString('es-PE')}
                       {automation.schedule.endAt && ` – ${new Date(automation.schedule.endAt).toLocaleString('es-PE')}`}
@@ -255,21 +290,21 @@ export function AutomationPanel({ onClose, onToast }: AutomationPanelProps) {
 
                   <div className="mt-3 grid grid-cols-3 gap-1">
                     <button
-                      className="btn-ghost flex items-center justify-center gap-1 px-1 text-xs"
+                      className="flex items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-1 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300"
                       onClick={() => runNow(automation)}
                       disabled={!automation.steps.length || automation.lastStatus === 'recording' || Boolean(busy)}
                     >
                       <Play className="h-3.5 w-3.5" /> Ejecutar
                     </button>
                     <button
-                      className="btn-ghost flex items-center justify-center gap-1 px-1 text-xs"
+                      className="flex items-center justify-center gap-1 rounded-lg border border-vault-200 bg-vault-50 px-1 py-2 text-xs font-semibold text-vault-700 transition hover:bg-vault-100 disabled:opacity-40 dark:border-vault-900 dark:bg-vault-950/30 dark:text-vault-300"
                       onClick={() => openSchedule(automation)}
                       disabled={!automation.steps.length || automation.lastStatus === 'recording' || Boolean(busy)}
                     >
                       <Clock3 className="h-3.5 w-3.5" /> Programar
                     </button>
                     <button
-                      className="btn-ghost flex items-center justify-center gap-1 px-1 text-xs"
+                      className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300"
                       onClick={() => recordAgain(automation)}
                       disabled={Boolean(busy)}
                     >

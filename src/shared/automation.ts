@@ -9,6 +9,7 @@ export interface AutomationStep {
   frameUrl?: string
   delayMs: number
   label: string
+  disabledWhenRecorded?: boolean
 }
 
 export interface AutomationSchedule {

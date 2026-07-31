@@ -215,9 +215,30 @@ function injectStyles() {
       font-size: 12px !important;
       color: #0f172a !important;
     }
+    .pv-recorded-click {
+      position: fixed !important;
+      z-index: 2147483646 !important;
+      width: 26px !important;
+      height: 26px !important;
+      border: 3px solid #6366f1 !important;
+      border-radius: 999px !important;
+      background: rgba(99, 102, 241, 0.18) !important;
+      pointer-events: none !important;
+      transform: translate(-50%, -50%) scale(0.35);
+      animation: pvRecordedClick 0.62s ease-out forwards !important;
+    }
+    .pv-recorded-click-disabled {
+      border-color: #f59e0b !important;
+      background: rgba(245, 158, 11, 0.2) !important;
+    }
     @keyframes pvFadeIn {
       from { opacity: 0; transform: translateY(-4px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pvRecordedClick {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.35); }
+      75% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.35); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.65); }
     }
   `
   document.head.appendChild(style)
@@ -330,7 +351,15 @@ function getClickLabel(element: Element) {
   )
 }
 
-function getClickableElement(event: MouseEvent): Element | null {
+function isElementDisabled(element: Element) {
+  return (
+    element.matches(':disabled') ||
+    element.getAttribute('aria-disabled') === 'true' ||
+    ('disabled' in element && Boolean((element as HTMLButtonElement).disabled))
+  )
+}
+
+function getClickableElement(event: Event): Element | null {
   const candidates = event.composedPath().filter(
     (item): item is Element => item instanceof Element
   )
@@ -355,6 +384,15 @@ function getClickableElement(event: MouseEvent): Element | null {
     if (closest) return closest
   }
   return candidates[0] || null
+}
+
+function showRecordedClickMarker(event: PointerEvent, disabled: boolean) {
+  const marker = document.createElement('span')
+  marker.className = `pv-recorded-click${disabled ? ' pv-recorded-click-disabled' : ''}`
+  marker.style.left = `${event.clientX}px`
+  marker.style.top = `${event.clientY}px`
+  document.documentElement.appendChild(marker)
+  setTimeout(() => marker.remove(), 650)
 }
 
 function updateRecordingBadge() {
@@ -432,16 +470,24 @@ function showRecordingToolbar(initialCount = 0) {
   })
 }
 
-document.addEventListener('click', (event) => {
+window.addEventListener('pointerdown', (event) => {
   if (!automationRecording) return
+  if (event.button !== 0 || !event.isPrimary) return
   const element = getClickableElement(event)
   if (!element || element.closest('[data-pv-automation-toolbar]')) return
   const selectors = getElementSelectors(element)
   if (!selectors.length) return
   const label = getClickLabel(element)
+  const disabledWhenRecorded = isElementDisabled(element)
+  showRecordedClickMarker(event, disabledWhenRecorded)
   pendingClickCount += 1
   recordedClickCount = confirmedClickCount + pendingClickCount
-  if (recordingLastStepElement) recordingLastStepElement.textContent = `Último: ${label}`
+  if (recordingLastStepElement) {
+    recordingLastStepElement.textContent = disabledWhenRecorded
+      ? `Último: ${label} · deshabilitado`
+      : `Último: ${label}`
+    recordingLastStepElement.style.color = disabledWhenRecorded ? '#fbbf24' : '#94a3b8'
+  }
   updateRecordingBadge()
   void chrome.runtime.sendMessage({
     action: 'RECORD_AUTOMATION_CLICK',
@@ -451,6 +497,7 @@ document.addEventListener('click', (event) => {
       pageUrl: window.location.href,
       frameUrl: window.location.href,
       label,
+      disabledWhenRecorded,
     },
   }).then((response) => {
     pendingClickCount = Math.max(0, pendingClickCount - 1)
@@ -477,9 +524,23 @@ async function findElement(selectors: string[]): Promise<HTMLElement | null> {
   return null
 }
 
+async function waitUntilEnabled(
+  selectors: string[],
+  initialElement: HTMLElement
+): Promise<HTMLElement> {
+  let element = initialElement
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    if (!isElementDisabled(element)) return element
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    element = await findElement(selectors) || element
+  }
+  throw new Error('El control continúa deshabilitado después de 15 segundos')
+}
+
 async function playAutomationStep(selectors: string[]) {
-  const element = await findElement(selectors)
-  if (!element) throw new Error(`No se encontró el elemento: ${selectors[0]}`)
+  const foundElement = await findElement(selectors)
+  if (!foundElement) throw new Error(`No se encontró el elemento: ${selectors[0]}`)
+  const element = await waitUntilEnabled(selectors, foundElement)
   element.scrollIntoView({ behavior: 'smooth', block: 'center' })
   const previousOutline = element.style.outline
   element.style.outline = '3px solid #6366f1'
@@ -497,13 +558,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return
   }
   if (message.action === 'PLAY_AUTOMATION_STEP') {
-    playAutomationStep([
+    sendResponse({ success: true, accepted: true })
+    void playAutomationStep([
       message.selector,
       ...(Array.isArray(message.fallbackSelectors) ? message.fallbackSelectors : []),
     ])
-      .then(() => sendResponse({ success: true }))
-      .catch((error) => sendResponse({ success: false, error: String(error) }))
-    return true
+      .then(() => chrome.runtime.sendMessage({
+        action: 'AUTOMATION_STEP_RESULT',
+        requestId: message.requestId,
+        success: true,
+      }))
+      .catch((error) => chrome.runtime.sendMessage({
+        action: 'AUTOMATION_STEP_RESULT',
+        requestId: message.requestId,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      }))
+      .catch(() => undefined)
+    return
   }
   if (message.action === 'UPDATE_RECORDING_COUNT' && window === window.top) {
     if (typeof message.count === 'number') {
@@ -512,7 +584,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       updateRecordingBadge()
     }
     if (recordingLastStepElement && message.label) {
-      recordingLastStepElement.textContent = `Último: ${message.label}`
+      recordingLastStepElement.textContent = message.disabledWhenRecorded
+        ? `Último: ${message.label} · deshabilitado`
+        : `Último: ${message.label}`
+      recordingLastStepElement.style.color = message.disabledWhenRecorded
+        ? '#fbbf24'
+        : '#94a3b8'
     }
     sendResponse({ success: true })
   }
