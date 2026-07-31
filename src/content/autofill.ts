@@ -513,42 +513,37 @@ window.addEventListener('pointerdown', (event) => {
   })
 }, true)
 
-async function findElement(selectors: string[]): Promise<HTMLElement | null> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    for (const selector of selectors) {
-      const element = document.querySelector(selector)
-      if (element instanceof HTMLElement) return element
+function prepareAutomationStep(selectors: string[]) {
+  let element: HTMLElement | null = null
+  for (const selector of selectors) {
+    const candidate = document.querySelector(selector)
+    if (candidate instanceof HTMLElement) {
+      element = candidate
+      break
     }
-    await new Promise((resolve) => setTimeout(resolve, 250))
   }
-  return null
-}
-
-async function waitUntilEnabled(
-  selectors: string[],
-  initialElement: HTMLElement
-): Promise<HTMLElement> {
-  let element = initialElement
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    if (!isElementDisabled(element)) return element
-    await new Promise((resolve) => setTimeout(resolve, 250))
-    element = await findElement(selectors) || element
+  if (!element) {
+    return {
+      accepted: false,
+      retryable: true,
+      error: `No se encontró el elemento: ${selectors[0]}`,
+    }
   }
-  throw new Error('El control continúa deshabilitado después de 15 segundos')
-}
-
-async function playAutomationStep(selectors: string[]) {
-  const foundElement = await findElement(selectors)
-  if (!foundElement) throw new Error(`No se encontró el elemento: ${selectors[0]}`)
-  const element = await waitUntilEnabled(selectors, foundElement)
+  if (isElementDisabled(element)) {
+    return {
+      accepted: false,
+      retryable: true,
+      error: 'El control continúa deshabilitado',
+    }
+  }
   element.scrollIntoView({ behavior: 'smooth', block: 'center' })
   const previousOutline = element.style.outline
   element.style.outline = '3px solid #6366f1'
-  await new Promise((resolve) => setTimeout(resolve, 300))
   setTimeout(() => {
     element.click()
     setTimeout(() => { element.style.outline = previousOutline }, 500)
-  }, 50)
+  }, 100)
+  return { accepted: true, success: true }
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -558,23 +553,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return
   }
   if (message.action === 'PLAY_AUTOMATION_STEP') {
-    sendResponse({ success: true, accepted: true })
-    void playAutomationStep([
+    sendResponse(prepareAutomationStep([
       message.selector,
       ...(Array.isArray(message.fallbackSelectors) ? message.fallbackSelectors : []),
-    ])
-      .then(() => chrome.runtime.sendMessage({
-        action: 'AUTOMATION_STEP_RESULT',
-        requestId: message.requestId,
-        success: true,
-      }))
-      .catch((error) => chrome.runtime.sendMessage({
-        action: 'AUTOMATION_STEP_RESULT',
-        requestId: message.requestId,
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      }))
-      .catch(() => undefined)
+    ]))
     return
   }
   if (message.action === 'UPDATE_RECORDING_COUNT' && window === window.top) {
