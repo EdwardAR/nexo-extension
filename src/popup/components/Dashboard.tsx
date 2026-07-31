@@ -52,7 +52,7 @@ export function Dashboard({
 
   return (
     <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-900">
-      <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-vault-900 to-cyan-900 px-5 pb-8 pt-4">
+      <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-vault-900 to-cyan-900 px-5 pb-7 pt-4">
         <div className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-cyan-300/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-10 h-36 w-36 rounded-full bg-vault-400/20 blur-3xl" />
         <div className="flex items-center justify-between">
@@ -75,7 +75,7 @@ export function Dashboard({
             </IconButton>
           </div>
         </div>
-        <div className="mt-5 flex items-end justify-between">
+        <div className="mt-4 flex items-end justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200/70">Bóveda protegida</p>
             <p className="mt-1 text-lg font-semibold text-white">{entries.length} {entries.length === 1 ? 'acceso seguro' : 'accesos seguros'}</p>
@@ -84,26 +84,26 @@ export function Dashboard({
         </div>
       </header>
 
-      <nav className="relative -mt-4 grid grid-cols-3 gap-2 px-4" aria-label="Módulos de Nexo">
-        <button onClick={onOpenTime} className="group rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-cyan-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-cyan-700">
-          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 transition group-hover:bg-cyan-100 dark:bg-cyan-950/60 dark:text-cyan-300"><Clock3 className="h-4 w-4" /></span>
+      <nav className="relative -mt-4 grid grid-cols-3 gap-2.5 px-4" aria-label="Módulos de Nexo">
+        <button onClick={onOpenTime} className="group rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-cyan-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-cyan-700">
+          <span className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 transition group-hover:bg-cyan-100 dark:bg-cyan-950/60 dark:text-cyan-300"><Clock3 className="h-4 w-4" /></span>
           <strong className="block text-xs text-slate-900 dark:text-white">Horarios</strong>
           <small className="text-[10px] text-slate-400">Alertas</small>
         </button>
-        <button onClick={onOpenAutomations} className="group rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-vault-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-vault-700">
-          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-vault-50 text-vault-600 transition group-hover:bg-vault-100 dark:bg-vault-950/60 dark:text-vault-300"><MousePointerClick className="h-4 w-4" /></span>
+        <button onClick={onOpenAutomations} className="group rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-vault-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-vault-700">
+          <span className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl bg-vault-50 text-vault-600 transition group-hover:bg-vault-100 dark:bg-vault-950/60 dark:text-vault-300"><MousePointerClick className="h-4 w-4" /></span>
           <strong className="block text-xs text-slate-900 dark:text-white">Flujos</strong>
           <small className="text-[10px] text-slate-400">Automatizar</small>
         </button>
-        <button onClick={onOpenRenewals} className="group relative rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-amber-700">
-          <span className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition group-hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300"><BellRing className="h-4 w-4" /></span>
+        <button onClick={onOpenRenewals} className="group relative rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-amber-700">
+          <span className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition group-hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300"><BellRing className="h-4 w-4" /></span>
           <strong className="block text-xs text-slate-900 dark:text-white">Renovar</strong>
           <small className="text-[10px] text-slate-400">{renewalCount ? `${renewalCount} pendiente${renewalCount === 1 ? '' : 's'}` : 'Al día'}</small>
           {renewalCount > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" />}
         </button>
       </nav>
 
-      <div className="px-4 pb-3 pt-4">
+      <div className="px-4 pb-3 pt-3.5">
         <div className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
           <KeyRound className="h-3.5 w-3.5 text-vault-500" /> Contraseñas
         </div>

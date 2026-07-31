@@ -23,15 +23,17 @@
 
   body {
     @apply m-0 p-0 font-sans antialiased;
-    width: 380px;
-    min-height: 520px;
+    width: 400px;
+    height: 600px;
+    min-height: 600px;
+    font-size: 15px;
     overflow: hidden;
     background: var(--bg-primary);
     color: var(--text-primary);
   }
 
   #root {
-    @apply min-h-screen;
+    @apply h-full min-h-full;
   }
 
   ::-webkit-scrollbar {
