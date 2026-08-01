@@ -12,6 +12,8 @@ export interface ScheduledReminder {
   enabled: boolean
   createdAt: number
   notifiedAt?: number
+  deliveryStatus?: 'scheduled' | 'delivered' | 'partial' | 'blocked' | 'failed'
+  deliveryError?: string
 }
 
 function dateTimeParts(timestamp: number, timeZone: ReminderTimeZone) {

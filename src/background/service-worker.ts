@@ -23,6 +23,7 @@ import {
 const SESSION_KEY = 'vaultSession'
 const RENEWAL_ALARM = 'checkRenewals'
 const NOTIFICATION_ID = 'password-renewal-reminder'
+const REMINDER_WATCHDOG_ALARM = 'nexo-reminder-watchdog'
 
 interface VaultSession {
   active: boolean
@@ -36,6 +37,7 @@ interface AutomationRecordingSession {
 }
 
 let recordingWriteQueue: Promise<unknown> = Promise.resolve()
+const reminderDeliveryInFlight = new Set<string>()
 
 async function getSession(): Promise<VaultSession | null> {
   const result = await chrome.storage.session.get(SESSION_KEY)
@@ -51,12 +53,14 @@ chrome.runtime.onInstalled.addListener(() => {
   scheduleRenewalChecks()
   void restoreAutomationAlarms()
   void restoreReminderAlarms()
+  void ensureReminderWatchdog()
 })
 
 chrome.runtime.onStartup.addListener(() => {
   scheduleRenewalChecks()
   void restoreAutomationAlarms()
   void restoreReminderAlarms()
+  void ensureReminderWatchdog()
 })
 
 chrome.windows.onRemoved.addListener(async () => {
@@ -133,6 +137,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       case 'DELETE_REMINDER':
         return deleteReminder(message.id)
 
+      case 'TEST_REMINDER_NOTIFICATION':
+        return testReminderNotification()
+
       default:
         return { error: 'Unknown action' }
     }
@@ -153,6 +160,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name.startsWith(REMINDER_ALARM_PREFIX)) {
     void showReminder(alarm.name.slice(REMINDER_ALARM_PREFIX.length))
   }
+  if (alarm.name === REMINDER_WATCHDOG_ALARM) void checkDueReminders()
 })
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
@@ -190,7 +198,31 @@ async function syncReminderAlarm(reminder: ScheduledReminder) {
 
 async function restoreReminderAlarms() {
   const reminders = await loadReminders()
+  await Promise.all(
+    reminders
+      .filter((reminder) => reminder.enabled && reminder.scheduledAt <= Date.now())
+      .map((reminder) => showReminder(reminder.id))
+  )
   await Promise.all(reminders.map(syncReminderAlarm))
+}
+
+async function ensureReminderWatchdog() {
+  const existing = await chrome.alarms.get(REMINDER_WATCHDOG_ALARM)
+  if (!existing) {
+    await chrome.alarms.create(REMINDER_WATCHDOG_ALARM, {
+      delayInMinutes: 1,
+      periodInMinutes: 1,
+    })
+  }
+}
+
+async function checkDueReminders() {
+  const reminders = await loadReminders()
+  await Promise.all(
+    reminders
+      .filter((reminder) => reminder.enabled && reminder.scheduledAt <= Date.now())
+      .map((reminder) => showReminder(reminder.id))
+  )
 }
 
 async function saveReminder(candidate: unknown) {
@@ -217,12 +249,19 @@ async function saveReminder(candidate: unknown) {
     ...candidateReminder,
     title: candidateReminder.title.trim().slice(0, 60),
     message: candidateReminder.message.trim().slice(0, 160),
+    deliveryStatus: candidateReminder.enabled ? 'scheduled' : candidateReminder.deliveryStatus,
+    deliveryError: undefined,
   }
   if (index === -1) reminders.push(reminder)
   else reminders[index] = reminder
   await saveReminders(reminders)
   await syncReminderAlarm(reminder)
-  return { success: true }
+  await ensureReminderWatchdog()
+  const alarm = await chrome.alarms.get(reminderAlarmName(reminder.id))
+  if (reminder.enabled && !alarm) {
+    return { success: false, error: 'Chrome no pudo registrar la alarma. Recarga Nexo e inténtalo otra vez.' }
+  }
+  return { success: true, scheduledFor: alarm?.scheduledTime }
 }
 
 async function deleteReminder(id: string) {
@@ -232,21 +271,154 @@ async function deleteReminder(id: string) {
   return { success: true }
 }
 
+function getNotificationPermission() {
+  return new Promise<string>((resolve) => {
+    chrome.notifications.getPermissionLevel(resolve)
+  })
+}
+
+function createNotification(
+  id: string,
+  options: chrome.notifications.NotificationOptions<true>
+) {
+  return new Promise<string>((resolve, reject) => {
+    chrome.notifications.create(id, options, (createdId) => {
+      const error = chrome.runtime.lastError
+      if (error) reject(new Error(error.message))
+      else if (!createdId) reject(new Error('Chrome no confirmó la notificación'))
+      else resolve(createdId)
+    })
+  })
+}
+
 async function showReminder(id: string) {
+  if (reminderDeliveryInFlight.has(id)) return
+  reminderDeliveryInFlight.add(id)
+  try {
+    await deliverReminder(id)
+  } catch (error) {
+    const reminders = await loadReminders()
+    const index = reminders.findIndex((item) => item.id === id)
+    if (index !== -1) {
+      await showReminderFallback(reminders[index])
+      await playReminderSound().catch(() => undefined)
+      reminders[index] = {
+        ...reminders[index],
+        deliveryStatus: 'failed',
+        deliveryError: error instanceof Error ? error.message : String(error),
+      }
+      await saveReminders(reminders)
+    }
+  } finally {
+    reminderDeliveryInFlight.delete(id)
+  }
+}
+
+async function deliverReminder(id: string) {
   const reminders = await loadReminders()
   const index = reminders.findIndex((item) => item.id === id)
   if (index === -1 || !reminders[index].enabled) return
   const reminder = reminders[index]
-  await chrome.notifications.create(reminderAlarmName(id), {
+  const permission = await getNotificationPermission()
+  if (permission !== 'granted') {
+    await showReminderFallback(reminder)
+    const soundResult = await playReminderSound()
+      .then(() => undefined)
+      .catch((error) => error instanceof Error ? error.message : String(error))
+    reminders[index] = {
+      ...reminder,
+      enabled: false,
+      deliveryStatus: 'blocked',
+      deliveryError: soundResult
+        ? `Notificaciones bloqueadas y el sonido falló: ${soundResult}`
+        : 'La notificación de Windows está bloqueada; se mostró el aviso dentro del navegador.',
+    }
+    await saveReminders(reminders)
+    return
+  }
+  await createNotification(reminderAlarmName(id), {
     type: 'basic',
     iconUrl: 'public/icons/icon128.png',
     title: reminder.title,
     message: reminder.message || 'Tienes un recordatorio programado en Nexo.',
     contextMessage: reminder.timeZone === 'Europe/Madrid' ? 'Horario de España' : 'Horario de Perú',
     priority: 2,
+    requireInteraction: true,
+    silent: false,
   })
-  reminders[index] = { ...reminder, enabled: false, notifiedAt: Date.now() }
+  await chrome.action.setBadgeText({ text: '' })
+  let soundError: string | undefined
+  try {
+    await playReminderSound()
+  } catch (error) {
+    soundError = error instanceof Error ? error.message : String(error)
+  }
+  reminders[index] = {
+    ...reminder,
+    enabled: false,
+    notifiedAt: Date.now(),
+    deliveryStatus: soundError ? 'partial' : 'delivered',
+    deliveryError: soundError ? `La notificación salió, pero el sonido falló: ${soundError}` : undefined,
+  }
   await saveReminders(reminders)
+}
+
+async function showReminderFallback(reminder: ScheduledReminder) {
+  await chrome.action.setBadgeBackgroundColor({ color: '#dc2626' })
+  await chrome.action.setBadgeText({ text: '!' })
+  await chrome.action.setTitle({ title: `Nexo · ${reminder.title}` })
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+  if (!tab?.id || !tab.url?.startsWith('http')) return
+  await chrome.tabs.sendMessage(tab.id, {
+    action: 'SHOW_NEXO_REMINDER',
+    title: reminder.title,
+    message: reminder.message || 'Tienes un recordatorio programado en Nexo.',
+  }).catch(() => undefined)
+}
+
+async function playReminderSound() {
+  await ensureOffscreenDocument()
+  const response = await chrome.runtime.sendMessage({
+    target: 'offscreen',
+    action: 'PLAY_REMINDER_SOUND',
+  })
+  if (!response?.success) {
+    throw new Error(response?.error || 'El reproductor no confirmó el sonido')
+  }
+}
+
+async function testReminderNotification() {
+  const permission = await getNotificationPermission()
+  const testReminder: ScheduledReminder = {
+    id: `test-${Date.now()}`,
+    title: 'Prueba de Nexo',
+    message: 'Las alertas de Nexo están funcionando.',
+    scheduledAt: Date.now(),
+    timeZone: 'America/Lima',
+    enabled: false,
+    createdAt: Date.now(),
+  }
+  if (permission !== 'granted') {
+    await showReminderFallback(testReminder)
+    await playReminderSound()
+    return { success: true, fallback: true }
+  }
+  try {
+    await createNotification(`nexo-reminder-test:${Date.now()}`, {
+      type: 'basic',
+      iconUrl: 'public/icons/icon128.png',
+      title: testReminder.title,
+      message: 'Las notificaciones y el sonido de tus alertas están funcionando.',
+      contextMessage: 'Aviso de prueba',
+      priority: 2,
+      requireInteraction: true,
+      silent: false,
+    })
+  } catch {
+    await showReminderFallback(testReminder)
+  }
+  await playReminderSound()
+  return { success: true }
 }
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -686,7 +858,7 @@ async function ensureOffscreenDocument() {
   await chrome.offscreen.createDocument({
     url: 'automation-sound.html',
     reasons: [chrome.offscreen.Reason.AUDIO_PLAYBACK],
-    justification: 'Reproducir el aviso sonoro al finalizar una automatización',
+    justification: 'Reproducir los avisos sonoros de Nexo',
   })
 }
 

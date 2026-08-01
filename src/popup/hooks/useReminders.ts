@@ -30,6 +30,7 @@ export function useReminders() {
     const response = await chrome.runtime.sendMessage(message)
     if (!response?.success) throw new Error(response?.error || 'No se pudo guardar el recordatorio')
     await refresh()
+    return response
   }, [refresh])
 
   return {
@@ -37,5 +38,6 @@ export function useReminders() {
     loading,
     save: (reminder: ScheduledReminder) => send({ action: 'SAVE_REMINDER', reminder }),
     remove: (id: string) => send({ action: 'DELETE_REMINDER', id }),
+    testNotification: () => send({ action: 'TEST_REMINDER_NOTIFICATION' }),
   }
 }

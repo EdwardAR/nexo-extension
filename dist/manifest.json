@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Nexo",
-  "version": "1.4.1",
+  "version": "1.4.3",
   "description": "Tu centro digital para contraseñas, alertas y automatizaciones",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
@@ -34,7 +34,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/autofill.ts-Bd-HxJ24.js"
+        "assets/autofill.ts-CKb5JV8Z.js"
       ],
       "matches": [
         "<all_urls>"
@@ -58,7 +58,7 @@
         "<all_urls>"
       ],
       "resources": [
-        "assets/autofill.ts-Bd-HxJ24.js"
+        "assets/autofill.ts-CKb5JV8Z.js"
       ],
       "use_dynamic_url": false
     }
