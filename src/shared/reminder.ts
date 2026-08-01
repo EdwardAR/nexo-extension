@@ -8,12 +8,15 @@ export interface ScheduledReminder {
   title: string
   message: string
   scheduledAt: number
+  scheduledLocalTime?: string
   timeZone?: ReminderTimeZone
   enabled: boolean
   createdAt: number
   notifiedAt?: number
-  deliveryStatus?: 'scheduled' | 'delivered' | 'partial' | 'blocked' | 'failed'
+  deliveryStatus?: 'scheduled' | 'ringing' | 'delivered' | 'partial' | 'blocked' | 'failed'
   deliveryError?: string
+  alarmWindowId?: number
+  acknowledgedAt?: number
 }
 
 function dateTimeParts(timestamp: number, timeZone: ReminderTimeZone) {

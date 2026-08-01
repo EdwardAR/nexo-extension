@@ -16,7 +16,9 @@ import {
 import {
   loadReminders,
   REMINDER_ALARM_PREFIX,
+  REMINDERS_KEY,
   saveReminders,
+  zonedInputToTimestamp,
   type ScheduledReminder,
 } from '../shared/reminder'
 
@@ -63,7 +65,8 @@ chrome.runtime.onStartup.addListener(() => {
   void ensureReminderWatchdog()
 })
 
-chrome.windows.onRemoved.addListener(async () => {
+chrome.windows.onRemoved.addListener(async (windowId) => {
+  await reopenUnacknowledgedAlarmWindow(windowId)
   const openWindows = await chrome.windows.getAll()
   if (openWindows.length === 0) await clearSession()
 })
@@ -140,6 +143,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       case 'TEST_REMINDER_NOTIFICATION':
         return testReminderNotification()
 
+      case 'ACKNOWLEDGE_REMINDER':
+        return acknowledgeReminder(message.id)
+
+      case 'SYNC_REMINDER_ALARMS':
+        await initializeReminderScheduler()
+        return { success: true }
+
       default:
         return { error: 'Unknown action' }
     }
@@ -185,6 +195,12 @@ chrome.notifications.onClicked.addListener((notificationId) => {
   }
 })
 
+chrome.notifications.onButtonClicked.addListener((notificationId) => {
+  if (notificationId.startsWith(REMINDER_ALARM_PREFIX)) {
+    void acknowledgeReminder(notificationId.slice(REMINDER_ALARM_PREFIX.length))
+  }
+})
+
 function reminderAlarmName(id: string) {
   return `${REMINDER_ALARM_PREFIX}${id}`
 }
@@ -192,7 +208,12 @@ function reminderAlarmName(id: string) {
 async function syncReminderAlarm(reminder: ScheduledReminder) {
   await chrome.alarms.clear(reminderAlarmName(reminder.id))
   if (reminder.enabled && reminder.scheduledAt > Date.now()) {
-    await chrome.alarms.create(reminderAlarmName(reminder.id), { when: reminder.scheduledAt })
+    await chrome.alarms.create(reminderAlarmName(reminder.id), {
+      when: reminder.scheduledAt,
+      periodInMinutes: 1,
+    })
+  } else if (reminder.enabled) {
+    void showReminder(reminder.id)
   }
 }
 
@@ -210,10 +231,16 @@ async function ensureReminderWatchdog() {
   const existing = await chrome.alarms.get(REMINDER_WATCHDOG_ALARM)
   if (!existing) {
     await chrome.alarms.create(REMINDER_WATCHDOG_ALARM, {
-      delayInMinutes: 1,
-      periodInMinutes: 1,
+      delayInMinutes: 0.5,
+      periodInMinutes: 0.5,
     })
   }
+}
+
+async function initializeReminderScheduler() {
+  await ensureReminderWatchdog()
+  await restoreReminderAlarms()
+  await checkDueReminders()
 }
 
 async function checkDueReminders() {
@@ -237,16 +264,27 @@ async function saveReminder(candidate: unknown) {
     typeof value.scheduledAt !== 'number' ||
     typeof value.enabled !== 'boolean' ||
     typeof value.createdAt !== 'number' ||
+    (value.scheduledLocalTime !== undefined && typeof value.scheduledLocalTime !== 'string') ||
     (value.timeZone !== undefined && value.timeZone !== 'America/Lima' && value.timeZone !== 'Europe/Madrid') ||
     !value.title.trim() ||
     !Number.isFinite(value.scheduledAt)
   ) return { success: false, error: 'El recordatorio no es válido' }
 
   const candidateReminder = value as ScheduledReminder
+  const normalizedScheduledAt = candidateReminder.timeZone && candidateReminder.scheduledLocalTime
+    ? zonedInputToTimestamp(candidateReminder.scheduledLocalTime, candidateReminder.timeZone)
+    : candidateReminder.scheduledAt
+  if (!Number.isFinite(normalizedScheduledAt)) {
+    return { success: false, error: 'La fecha no existe en la zona horaria seleccionada' }
+  }
+  if (candidateReminder.enabled && normalizedScheduledAt <= Date.now()) {
+    return { success: false, error: 'La fecha y hora programadas ya pasaron' }
+  }
   const reminders = await loadReminders()
   const index = reminders.findIndex((item) => item.id === candidateReminder.id)
   const reminder: ScheduledReminder = {
     ...candidateReminder,
+    scheduledAt: normalizedScheduledAt,
     title: candidateReminder.title.trim().slice(0, 60),
     message: candidateReminder.message.trim().slice(0, 160),
     deliveryStatus: candidateReminder.enabled ? 'scheduled' : candidateReminder.deliveryStatus,
@@ -266,8 +304,14 @@ async function saveReminder(candidate: unknown) {
 
 async function deleteReminder(id: string) {
   const reminders = await loadReminders()
+  const reminder = reminders.find((item) => item.id === id)
   await saveReminders(reminders.filter((item) => item.id !== id))
   await chrome.alarms.clear(reminderAlarmName(id))
+  await chrome.notifications.clear(reminderAlarmName(id))
+  if (reminder?.deliveryStatus === 'ringing') chrome.tts.stop()
+  if (reminder?.alarmWindowId !== undefined) {
+    await chrome.windows.remove(reminder.alarmWindowId).catch(() => undefined)
+  }
   return { success: true }
 }
 
@@ -319,48 +363,117 @@ async function deliverReminder(id: string) {
   const index = reminders.findIndex((item) => item.id === id)
   if (index === -1 || !reminders[index].enabled) return
   const reminder = reminders[index]
+  const alarmWindowId = await openReminderAlarmWindow(reminder)
+  await chrome.alarms.clear(reminderAlarmName(id))
   const permission = await getNotificationPermission()
-  if (permission !== 'granted') {
-    await showReminderFallback(reminder)
-    const soundResult = await playReminderSound()
-      .then(() => undefined)
-      .catch((error) => error instanceof Error ? error.message : String(error))
-    reminders[index] = {
-      ...reminder,
-      enabled: false,
-      deliveryStatus: 'blocked',
-      deliveryError: soundResult
-        ? `Notificaciones bloqueadas y el sonido falló: ${soundResult}`
-        : 'La notificación de Windows está bloqueada; se mostró el aviso dentro del navegador.',
+  let notificationError: string | undefined
+  if (permission === 'granted') {
+    try {
+      await createNotification(reminderAlarmName(id), {
+        type: 'basic',
+        iconUrl: 'public/icons/icon128.png',
+        title: reminder.title,
+        message: reminder.message || 'Tienes un recordatorio programado en Nexo.',
+        contextMessage: reminder.timeZone === 'Europe/Madrid' ? 'Horario de España' : 'Horario de Perú',
+        priority: 2,
+        requireInteraction: true,
+        silent: false,
+        buttons: [{ title: 'Detener alarma' }],
+      })
+    } catch (error) {
+      notificationError = error instanceof Error ? error.message : String(error)
     }
-    await saveReminders(reminders)
-    return
+  } else {
+    notificationError = 'Windows tiene bloqueadas las notificaciones nativas.'
   }
-  await createNotification(reminderAlarmName(id), {
-    type: 'basic',
-    iconUrl: 'public/icons/icon128.png',
-    title: reminder.title,
-    message: reminder.message || 'Tienes un recordatorio programado en Nexo.',
-    contextMessage: reminder.timeZone === 'Europe/Madrid' ? 'Horario de España' : 'Horario de Perú',
-    priority: 2,
-    requireInteraction: true,
-    silent: false,
-  })
-  await chrome.action.setBadgeText({ text: '' })
-  let soundError: string | undefined
-  try {
-    await playReminderSound()
-  } catch (error) {
-    soundError = error instanceof Error ? error.message : String(error)
-  }
+  await showReminderFallback(reminder)
   reminders[index] = {
     ...reminder,
     enabled: false,
     notifiedAt: Date.now(),
-    deliveryStatus: soundError ? 'partial' : 'delivered',
-    deliveryError: soundError ? `La notificación salió, pero el sonido falló: ${soundError}` : undefined,
+    deliveryStatus: 'ringing',
+    deliveryError: notificationError,
+    alarmWindowId,
   }
   await saveReminders(reminders)
+  startSpokenAlarm(reminder.id, reminder.title)
+}
+
+function startSpokenAlarm(id: string, title: string) {
+  const speak = async () => {
+    const reminder = (await loadReminders()).find((item) => item.id === id)
+    if (reminder?.deliveryStatus !== 'ringing') return
+    chrome.tts.speak(`Alarma de Nexo. ${title}. Pulsa OK para detener la alarma.`, {
+      lang: 'es-ES',
+      volume: 1,
+      rate: 1.05,
+      pitch: 1.1,
+      enqueue: false,
+      onEvent: (event) => {
+        if (event.type === 'end') void speak()
+      },
+    })
+  }
+  void speak()
+}
+
+async function openReminderAlarmWindow(reminder: ScheduledReminder) {
+  const url = chrome.runtime.getURL('reminder-alarm.html') + '?' + new URLSearchParams({
+    id: reminder.id,
+    title: reminder.title,
+    message: reminder.message || 'Tienes un recordatorio pendiente.',
+  }).toString()
+  const alarmWindow = await chrome.windows.create({
+    url,
+    type: 'popup',
+    width: 420,
+    height: 390,
+    focused: true,
+  })
+  if (alarmWindow.id === undefined) throw new Error('No se pudo abrir la ventana de alarma')
+  return alarmWindow.id
+}
+
+async function acknowledgeReminder(id: string) {
+  chrome.tts.stop()
+  const reminders = await loadReminders()
+  const index = reminders.findIndex((item) => item.id === id)
+  const windowId = index === -1 ? undefined : reminders[index].alarmWindowId
+  if (index !== -1) {
+    reminders[index] = {
+      ...reminders[index],
+      deliveryStatus: 'delivered',
+      deliveryError: undefined,
+      acknowledgedAt: Date.now(),
+      alarmWindowId: undefined,
+    }
+    await saveReminders(reminders)
+  }
+  await chrome.notifications.clear(reminderAlarmName(id))
+  await chrome.action.setBadgeText({ text: '' })
+  await chrome.action.setTitle({ title: 'Nexo' })
+  if (windowId !== undefined) {
+    await chrome.windows.remove(windowId).catch(() => undefined)
+  }
+  return { success: true }
+}
+
+async function reopenUnacknowledgedAlarmWindow(closedWindowId: number) {
+  const reminders = await loadReminders()
+  const reminder = reminders.find(
+    (item) => item.deliveryStatus === 'ringing' && item.alarmWindowId === closedWindowId
+  )
+  if (!reminder) return
+  await new Promise((resolve) => setTimeout(resolve, 400))
+  const alarmWindowId = await openReminderAlarmWindow(reminder)
+  const latest = await loadReminders()
+  const index = latest.findIndex((item) => item.id === reminder.id)
+  if (index === -1 || latest[index].deliveryStatus !== 'ringing') {
+    await chrome.windows.remove(alarmWindowId).catch(() => undefined)
+    return
+  }
+  latest[index] = { ...latest[index], alarmWindowId }
+  await saveReminders(latest)
 }
 
 async function showReminderFallback(reminder: ScheduledReminder) {
@@ -398,13 +511,15 @@ async function testReminderNotification() {
     enabled: false,
     createdAt: Date.now(),
   }
-  if (permission !== 'granted') {
-    await showReminderFallback(testReminder)
-    await playReminderSound()
-    return { success: true, fallback: true }
-  }
-  try {
-    await createNotification(`nexo-reminder-test:${Date.now()}`, {
+  await openReminderAlarmWindow(testReminder)
+  chrome.tts.speak('Alarma de Nexo. Prueba de sonido.', {
+    lang: 'es-ES',
+    volume: 1,
+    rate: 1.05,
+  })
+  await showReminderFallback(testReminder)
+  if (permission === 'granted') {
+    await createNotification(reminderAlarmName(testReminder.id), {
       type: 'basic',
       iconUrl: 'public/icons/icon128.png',
       title: testReminder.title,
@@ -414,18 +529,20 @@ async function testReminderNotification() {
       requireInteraction: true,
       silent: false,
     })
-  } catch {
-    await showReminderFallback(testReminder)
   }
-  await playReminderSound()
-  return { success: true }
+  return { success: true, nativeNotification: permission === 'granted' }
 }
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && RENEWAL_SCHEDULE_KEY in changes) {
     void checkRenewals()
   }
+  if (areaName === 'local' && REMINDERS_KEY in changes) {
+    void restoreReminderAlarms()
+  }
 })
+
+void initializeReminderScheduler()
 
 async function handleGetAutofillData(url: string) {
   const session = await getSession()

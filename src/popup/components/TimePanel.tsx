@@ -37,8 +37,13 @@ function defaultTimestamp() {
 function formatReminderTime(timestamp: number, timeZone: ReminderTimeZone) {
   return new Intl.DateTimeFormat('es-PE', {
     timeZone,
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
   }).format(timestamp)
 }
 
@@ -107,6 +112,7 @@ export function TimePanel({ onClose, onToast }: TimePanelProps) {
         title: title.trim(),
         message: message.trim(),
         scheduledAt: when,
+        scheduledLocalTime: scheduledAt,
         timeZone,
         enabled: true,
         createdAt: Date.now(),
@@ -244,8 +250,8 @@ export function TimePanel({ onClose, onToast }: TimePanelProps) {
             <div className="flex items-start gap-2 rounded-xl border border-cyan-100 bg-cyan-50/70 px-3 py-2.5 text-[11px] leading-relaxed text-cyan-900 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-200">
               <Globe2 className="mt-0.5 h-3.5 w-3.5 flex-none" />
               <span>
-                Se ejecutará el {formatReminderTime(selectedTimestamp, timeZone)} en {timeZone === 'America/Lima' ? 'Lima' : 'Madrid'}.
-                En {alternateCity} serán las {new Intl.DateTimeFormat('es-PE', { timeZone: alternateZone, hour: '2-digit', minute: '2-digit' }).format(selectedTimestamp)}.
+                <strong className="block">Hora de {timeZone === 'America/Lima' ? 'Lima' : 'Madrid'}: {formatReminderTime(selectedTimestamp, timeZone)}</strong>
+                <span className="mt-0.5 block">Equivale en {alternateCity}: {formatReminderTime(selectedTimestamp, alternateZone)}.</span>
               </span>
             </div>
           )}
@@ -273,16 +279,17 @@ export function TimePanel({ onClose, onToast }: TimePanelProps) {
             <div className="space-y-2">
               {reminders.map((reminder) => {
                 const expired = reminder.scheduledAt <= Date.now()
+                const ringing = reminder.deliveryStatus === 'ringing'
                 const reminderZone = reminder.timeZone || 'America/Lima'
                 const zone = zones.find((item) => item.id === reminderZone) || zones[0]
                 return (
-                  <article key={reminder.id} className={`card flex items-center gap-3 p-3 ${!reminder.enabled ? 'opacity-60' : ''}`}>
-                    <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl ${reminder.enabled && !expired ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300' : 'bg-slate-100 text-slate-400 dark:bg-slate-700'}`}>
-                      {reminder.enabled && !expired ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                  <article key={reminder.id} className={`card flex items-center gap-3 p-3 ${!reminder.enabled && !ringing ? 'opacity-60' : ''}`}>
+                    <span className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl ${reminder.enabled && !expired || ringing ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300' : 'bg-slate-100 text-slate-400 dark:bg-slate-700'}`}>
+                      {reminder.enabled && !expired || ringing ? <Bell className={`h-4 w-4 ${ringing ? 'animate-pulse' : ''}`} /> : <BellOff className="h-4 w-4" />}
                     </span>
                     <div className="min-w-0 flex-1">
                       <strong className="block truncate text-sm text-slate-900 dark:text-white">{reminder.title}</strong>
-                      <span className="block text-[11px] text-slate-500">{zone.flag} {formatReminderTime(reminder.scheduledAt, reminderZone)} · {zone.city}{expired ? ' · finalizado' : ''}</span>
+                      <span className="block text-[11px] text-slate-500">{zone.flag} {formatReminderTime(reminder.scheduledAt, reminderZone)} · {zone.city}{ringing ? ' · sonando' : expired ? ' · finalizado' : ''}</span>
                       {reminder.deliveryError && (
                         <span className={`mt-0.5 block text-[10px] font-semibold ${reminder.deliveryStatus === 'delivered' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{reminder.deliveryError}</span>
                       )}

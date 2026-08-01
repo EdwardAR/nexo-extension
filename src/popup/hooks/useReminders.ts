@@ -16,6 +16,7 @@ export function useReminders() {
 
   useEffect(() => {
     void refresh()
+    void chrome.runtime.sendMessage({ action: 'SYNC_REMINDER_ALARMS' }).catch(() => undefined)
     const handleChange = (
       changes: Record<string, chrome.storage.StorageChange>,
       areaName: string
