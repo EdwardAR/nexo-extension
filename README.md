@@ -90,6 +90,11 @@ cuenta controles deshabilitados. Durante la ejecución se espera hasta 15
 segundos a que el control vuelva a estar habilitado antes de marcar el paso como
 fallido.
 
+El reloj flotante conserva el mismo tamaño físico y la misma posición relativa
+en todas las pestañas, incluso cuando usan niveles de zoom distintos. Su tarjeta
+rectangular muestra siempre el día, la fecha y los datos horarios completos. Al
+moverlo, la posición se sincroniza con las demás páginas abiertas.
+
 ## Horarios y recordatorios
 
 El botón del reloj abre un panel con la hora de Lima (`America/Lima`) y Madrid

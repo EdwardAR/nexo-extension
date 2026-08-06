@@ -130,6 +130,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       case 'GET_ACTIVE_RECORDING':
         return getActiveRecording(_sender.tab?.id)
 
+      case 'GET_TAB_ZOOM':
+        return {
+          success: true,
+          zoom: _sender.tab?.id ? await chrome.tabs.getZoom(_sender.tab.id) : 1,
+        }
+
       case 'RUN_AUTOMATION':
         void runAutomation(message.id, false)
         return { success: true }
