@@ -9,7 +9,7 @@ import {
 } from '../shared/floating-clock'
 
 const HOST_ID = 'nexo-floating-clock-host'
-const CLOCK_WIDTH = 286
+const CLOCK_WIDTH = 540
 const VIEWPORT_MARGIN = 10
 
 let clockHost: HTMLElement | null = null
@@ -49,7 +49,7 @@ function getPhysicalViewport() {
 function getPhysicalClockSize() {
   return {
     width: clockHost?.offsetWidth || CLOCK_WIDTH,
-    height: clockHost?.offsetHeight || 142,
+    height: clockHost?.offsetHeight || 96,
   }
 }
 
@@ -147,15 +147,13 @@ async function showFloatingClock() {
   shadow.innerHTML = `
     <style>
       :host{color-scheme:dark}*{box-sizing:border-box}
-      .clock{width:${CLOCK_WIDTH}px;overflow:hidden;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:radial-gradient(circle at 95% 0%,rgba(34,211,238,.22),transparent 38%),linear-gradient(120deg,#020617 0%,#312e81 64%,#0e7490 100%);box-shadow:0 14px 32px rgba(15,23,42,.35);color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-      .drag{display:flex;height:22px;align-items:center;justify-content:space-between;padding:3px 9px 1px;color:#a5f3fc;cursor:grab;user-select:none}.drag:active{cursor:grabbing}.brand{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.live{width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399}.grip{color:rgba(255,255,255,.5);font-size:14px;letter-spacing:1px}
-      .main{display:flex;width:100%;align-items:center;gap:8px;padding:3px 10px 8px;color:inherit}.flag{position:relative;display:grid;width:36px;height:36px;flex:none;place-items:center;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:rgba(255,255,255,.1);font-size:18px}.period{position:absolute;right:-3px;bottom:-3px;display:grid;width:16px;height:16px;place-items:center;border-radius:50%;background:#172554;font-size:9px}.copy{min-width:0;flex:1}.city{display:block;color:#a5f3fc;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.time-row{display:flex;align-items:center;gap:7px;margin-top:1px}.time{font:750 22px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.04em}.zone{border:1px solid rgba(165,243,252,.2);border-radius:999px;background:rgba(8,145,178,.18);padding:3px 6px;color:#cffafe;font-size:9px;font-weight:800}.date{display:block;margin-top:3px;overflow:hidden;color:#e0e7ff;font-size:11px;font-weight:600;line-height:1.15;text-overflow:ellipsis;text-transform:capitalize;white-space:nowrap}
-      .details{display:block;border-top:1px solid rgba(255,255,255,.11);padding:7px 9px 6px;background:rgba(2,6,23,.24)}.info{display:grid;grid-template-columns:1fr 1.12fr 1fr;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.055);padding:7px 0}.tile{min-width:0;padding:0 4px;text-align:center}.tile+.tile{border-left:1px solid rgba(255,255,255,.11)}.label{display:block;overflow:hidden;color:#cbd5e1;font-size:10px;font-weight:800;line-height:1.1;text-overflow:ellipsis;white-space:nowrap}.value{display:block;margin-top:3px;color:#fff;font-size:13px;font-weight:800;line-height:1.1;white-space:nowrap}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:14px}.footer{display:flex;align-items:center;justify-content:space-between;margin-top:4px}.updated{color:#67e8f9;font-size:9px}.close{border:0;border-radius:6px;background:transparent;padding:3px 5px;color:#a5b4c7;font:600 9px inherit;cursor:pointer}.close:hover{background:rgba(248,113,113,.16);color:#fecaca}
+      .clock{position:relative;width:${CLOCK_WIDTH}px;overflow:visible;border:1px solid rgba(148,163,184,.32);border-radius:13px;background:radial-gradient(circle at 82% 0%,rgba(49,46,129,.2),transparent 45%),linear-gradient(110deg,#070b1c 0%,#11162e 55%,#17203d 100%);box-shadow:0 12px 28px rgba(2,6,23,.42);color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      .drag{display:flex;height:31px;align-items:end;padding:8px 15px 0;cursor:grab;user-select:none}.drag:active{cursor:grabbing}.brand{display:flex;align-items:center;gap:9px;color:#f8fafc;font-size:12px;font-weight:800;letter-spacing:.035em;text-transform:uppercase}.live{width:9px;height:9px;border-radius:50%;background:#34d399;box-shadow:0 0 10px #34d399}
+      .content{display:grid;grid-template-columns:44px 165px 1px 68px 1px 50px 1px 84px 22px;gap:8px;align-items:center;padding:5px 12px 11px}.badge{display:grid;width:44px;height:44px;place-items:center;border:1px solid #d9a514;border-radius:9px;background:rgba(15,23,42,.62);font-size:17px;font-weight:800}.primary{min-width:0}.time-row{display:flex;align-items:center;gap:6px}.time{font:800 23px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.045em}.zone{border-radius:8px;background:linear-gradient(180deg,#25476b,#17304c);padding:5px 7px;color:#e0f2fe;font-size:10px;font-weight:800;box-shadow:inset 0 1px rgba(255,255,255,.08)}.date{display:block;margin-top:5px;overflow:hidden;color:#b8c0d4;font-size:11px;font-weight:500;line-height:1;text-overflow:ellipsis;white-space:nowrap}.separator{width:1px;height:42px;background:rgba(148,163,184,.3)}.tile{min-width:0}.label{display:block;overflow:hidden;color:#cbd5e1;font-size:10px;font-weight:500;line-height:1.1;text-overflow:ellipsis;white-space:nowrap}.value{display:block;margin-top:6px;color:#f8fafc;font-size:16px;font-weight:800;line-height:1;white-space:nowrap}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.work{font-size:14px}.actions{position:relative;display:grid;place-items:center}.menu-button{border:0;border-radius:7px;background:transparent;padding:3px 7px;color:#9ca3b7;font:800 24px/1 system-ui;cursor:pointer}.menu-button:hover,.menu-button[aria-expanded="true"]{background:rgba(255,255,255,.08);color:#fff}.menu{position:absolute;right:-5px;top:36px;display:none;min-width:92px;border:1px solid rgba(148,163,184,.26);border-radius:8px;background:#111827;padding:4px;box-shadow:0 10px 24px rgba(2,6,23,.45);z-index:2}.menu.open{display:block}.close{width:100%;border:0;border-radius:5px;background:transparent;padding:6px 8px;color:#fecaca;font:600 10px system-ui;text-align:left;cursor:pointer}.close:hover{background:rgba(248,113,113,.14)}
     </style>
     <section class="clock" aria-label="Reloj de España">
-      <div class="drag" title="Arrastra para mover"><span class="brand"><i class="live"></i>Nexo World Time</span><span class="grip">⠿</span></div>
-      <div class="main"><span class="flag">🇪🇸<i class="period">☀️</i></span><span class="copy"><span class="city">Madrid · España</span><span class="time-row"><span class="time">--:--:--</span><span class="zone">CEST</span></span><span class="date"></span></span></div>
-      <div class="details"><div class="info"><div class="tile"><span class="label">🇵🇪 Lima</span><strong class="value mono lima">--:--</strong></div><div class="tile"><span class="label">Diferencia</span><strong class="value difference">+7 h</strong></div><div class="tile"><span class="label">Estado</span><strong class="value work">Laboral</strong></div></div><div class="footer"><span class="updated">● En vivo</span><button class="close" type="button">Desactivar</button></div></div>
+      <div class="drag" title="Arrastra para mover"><span class="brand"><i class="live"></i>Madrid - España</span></div>
+      <div class="content"><span class="badge">ES</span><div class="primary"><span class="time-row"><span class="time">--:--:--</span><span class="zone">CEST</span></span><span class="date"></span></div><i class="separator"></i><div class="tile"><span class="label">PC Lima</span><strong class="value mono lima">--:--</strong></div><i class="separator"></i><div class="tile"><span class="label">Dif.</span><strong class="value difference">+7 h</strong></div><i class="separator"></i><div class="tile"><span class="label">Estado</span><strong class="value work">Laboral</strong></div><div class="actions"><button class="menu-button" type="button" aria-label="Opciones del reloj" aria-expanded="false">⋮</button><div class="menu"><button class="close" type="button">Desactivar</button></div></div></div>
     </section>`
 
   const drag = shadow.querySelector<HTMLElement>('.drag')
@@ -165,8 +163,9 @@ async function showFloatingClock() {
   const difference = shadow.querySelector<HTMLElement>('.difference')
   const zone = shadow.querySelector<HTMLElement>('.zone')
   const work = shadow.querySelector<HTMLElement>('.work')
-  const period = shadow.querySelector<HTMLElement>('.period')
-  if (!drag || !time || !date || !lima || !difference || !zone || !work || !period) return
+  const menuButton = shadow.querySelector<HTMLButtonElement>('.menu-button')
+  const menu = shadow.querySelector<HTMLElement>('.menu')
+  if (!drag || !time || !date || !lima || !difference || !zone || !work || !menuButton || !menu) return
 
   clockHost = host
   document.documentElement.appendChild(host)
@@ -181,7 +180,8 @@ async function showFloatingClock() {
   const update = () => {
     const now = new Date()
     time.textContent = new Intl.DateTimeFormat('es-PE', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now)
-    date.textContent = new Intl.DateTimeFormat('es-PE', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(now)
+    const formattedDate = new Intl.DateTimeFormat('es-PE', { timeZone: 'Europe/Madrid', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(now).replace(/\./g, '')
+    date.textContent = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)
     lima.textContent = new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false }).format(now)
     const madridParts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false, timeZoneName: 'short' }).formatToParts(now)
     const madridHour = Number(madridParts.find((part) => part.type === 'hour')?.value || 0)
@@ -191,8 +191,12 @@ async function showFloatingClock() {
     const working = madridHour >= 9 && madridHour < 18
     work.textContent = working ? 'Laboral' : 'No laboral'
     work.style.color = working ? '#6ee7b7' : '#fcd34d'
-    period.textContent = madridHour >= 7 && madridHour < 21 ? '☀️' : '🌙'
   }
+
+  menuButton.addEventListener('click', () => {
+    const open = menu.classList.toggle('open')
+    menuButton.setAttribute('aria-expanded', String(open))
+  })
 
   let dragStart: { pointerX: number; pointerY: number; x: number; y: number } | null = null
   drag.addEventListener('pointerdown', (event) => {
