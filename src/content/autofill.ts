@@ -1,3 +1,11 @@
+import {
+  FLOATING_CLOCK_ENABLED_KEY,
+  isFloatingClockEnabled,
+  loadFloatingClockPosition,
+  saveFloatingClockPosition,
+  setFloatingClockEnabled,
+} from '../shared/floating-clock'
+
 interface AutofillSuggestion {
   username: string
   password: string
@@ -474,7 +482,7 @@ window.addEventListener('pointerdown', (event) => {
   if (!automationRecording) return
   if (event.button !== 0 || !event.isPrimary) return
   const element = getClickableElement(event)
-  if (!element || element.closest('[data-pv-automation-toolbar]')) return
+  if (!element || element.closest('[data-pv-automation-toolbar], #nexo-floating-clock-host, #nexo-reminder-alert')) return
   const selectors = getElementSelectors(element)
   if (!selectors.length) return
   const label = getClickLabel(element)
@@ -584,6 +592,144 @@ function showNexoReminder(title: string, message: string) {
   setTimeout(() => alert.remove(), 30_000)
 }
 
+let floatingClockTimer: number | undefined
+let floatingClockResizeHandler: (() => void) | undefined
+
+function removeFloatingClock() {
+  if (floatingClockTimer !== undefined) window.clearInterval(floatingClockTimer)
+  floatingClockTimer = undefined
+  if (floatingClockResizeHandler) window.removeEventListener('resize', floatingClockResizeHandler)
+  floatingClockResizeHandler = undefined
+  document.getElementById('nexo-floating-clock-host')?.remove()
+}
+
+async function showFloatingClock() {
+  if (window !== window.top || document.getElementById('nexo-floating-clock-host')) return
+  const host = document.createElement('div')
+  host.id = 'nexo-floating-clock-host'
+  host.style.cssText = 'all:initial;position:fixed;left:0;top:0;z-index:2147483646;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;visibility:hidden;touch-action:none'
+  const shadow = host.attachShadow({ mode: 'open' })
+  shadow.innerHTML = `
+    <style>
+      *{box-sizing:border-box}
+      .clock{width:246px;border:1px solid rgba(255,255,255,.2);border-radius:15px;background:radial-gradient(circle at 95% 0%,rgba(34,211,238,.2),transparent 38%),linear-gradient(120deg,#020617 0%,#312e81 64%,#0e7490 100%);box-shadow:0 12px 32px rgba(15,23,42,.3);color:#fff;overflow:hidden;transition:width .2s ease,box-shadow .2s ease;font-family:inherit}.clock.open{width:276px}.clock:hover{box-shadow:0 16px 38px rgba(15,23,42,.36)}
+      .drag{display:flex;align-items:center;justify-content:space-between;height:20px;padding:4px 9px 1px;color:#a5f3fc;cursor:grab;user-select:none}.drag:active{cursor:grabbing}.brand{display:flex;align-items:center;gap:5px;font-size:7px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.live{width:5px;height:5px;border-radius:50%;background:#34d399;box-shadow:0 0 7px #34d399}.grip{color:rgba(255,255,255,.4);font-size:12px;letter-spacing:1px}
+      .main{display:flex;width:100%;align-items:center;gap:9px;border:0;background:transparent;padding:4px 10px 9px;color:inherit;text-align:left;cursor:pointer}
+      .flag{position:relative;display:grid;width:32px;height:32px;flex:none;place-items:center;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.1);font-size:16px}.period{position:absolute;right:-3px;bottom:-3px;display:grid;width:14px;height:14px;place-items:center;border-radius:50%;background:#172554;font-size:8px}
+      .copy{min-width:0;flex:1}.city{display:block;color:#a5f3fc;font-size:8px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.time{display:block;margin-top:1px;font:750 18px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.04em}.zone-pill{align-self:center;border:1px solid rgba(165,243,252,.2);border-radius:999px;background:rgba(8,145,178,.18);padding:3px 6px;color:#cffafe;font-size:8px;font-weight:800}
+      .chevron{color:#a5b4fc;font-size:11px;transition:transform .2s}.clock.open .chevron{transform:rotate(180deg)}
+      .details{display:none;border-top:1px solid rgba(255,255,255,.11);padding:7px 10px 8px;background:rgba(2,6,23,.22)}.clock.open .details{display:block}.date{margin:0 0 7px;color:#c7d2fe;font-size:9px;text-transform:capitalize}
+      .info{display:flex;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.055);padding:6px 0}.tile{min-width:0;flex:1;padding:0 7px;text-align:left}.tile+.tile{border-left:1px solid rgba(255,255,255,.11)}.label{display:block;color:#94a3b8;font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.value{display:block;margin-top:2px;color:#fff;font-size:9px;font-weight:700;white-space:nowrap}.value.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}.work{color:#6ee7b7}
+      .footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}.updated{color:#67e8f9;font-size:7px}.close{border:0;border-radius:6px;background:transparent;padding:3px 5px;color:#94a3b8;font:600 8px inherit;cursor:pointer}.close:hover{background:rgba(248,113,113,.16);color:#fecaca}
+      @media (prefers-reduced-motion:reduce){.clock,.chevron{transition:none}}
+    </style>
+    <section class="clock" aria-label="Reloj de España">
+      <div class="drag" title="Arrastra para mover"><span class="brand"><i class="live"></i>Nexo World Time</span><span class="grip">⠿</span></div>
+      <button class="main" type="button" aria-expanded="false">
+        <span class="flag">🇪🇸<i class="period">☀️</i></span><span class="copy"><span class="city">Madrid · España</span><span class="time">--:--:--</span></span><span class="zone-pill">CEST</span><span class="chevron">⌄</span>
+      </button>
+      <div class="details">
+        <p class="date"></p>
+        <div class="info">
+          <div class="tile"><span class="label">🇵🇪 Lima</span><strong class="value mono lima">--:--</strong></div>
+          <div class="tile"><span class="label">Diferencia</span><strong class="value difference">+7 h</strong></div>
+          <div class="tile"><span class="label">Estado</span><strong class="value work">Laboral</strong></div>
+        </div>
+        <div class="footer"><span class="updated">● En vivo</span><button class="close" type="button">Desactivar</button></div>
+      </div>
+    </section>`
+  const clock = shadow.querySelector('.clock')
+  const main = shadow.querySelector('.main')
+  const time = shadow.querySelector('.time')
+  const date = shadow.querySelector('.date')
+  const lima = shadow.querySelector('.lima')
+  const difference = shadow.querySelector('.difference')
+  const zonePill = shadow.querySelector('.zone-pill')
+  const work = shadow.querySelector('.work')
+  const period = shadow.querySelector('.period')
+  const drag = shadow.querySelector('.drag')
+  if (!(clock instanceof HTMLElement) || !(main instanceof HTMLButtonElement) || !(time instanceof HTMLElement) || !(date instanceof HTMLElement) || !(lima instanceof HTMLElement) || !(difference instanceof HTMLElement) || !(zonePill instanceof HTMLElement) || !(work instanceof HTMLElement) || !(period instanceof HTMLElement) || !(drag instanceof HTMLElement)) return
+
+  document.documentElement.appendChild(host)
+  const storedPosition = await loadFloatingClockPosition()
+  const clampPosition = (x: number, y: number) => ({
+    x: Math.max(8, Math.min(x, window.innerWidth - host.offsetWidth - 8)),
+    y: Math.max(8, Math.min(y, window.innerHeight - host.offsetHeight - 8)),
+  })
+  const initial = clampPosition(storedPosition?.x ?? window.innerWidth - 214, storedPosition?.y ?? 84)
+  host.style.left = `${initial.x}px`
+  host.style.top = `${initial.y}px`
+  host.style.visibility = 'visible'
+
+  const update = () => {
+    const now = new Date()
+    time.textContent = new Intl.DateTimeFormat('es-PE', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now)
+    date.textContent = new Intl.DateTimeFormat('es-PE', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long' }).format(now)
+    lima.textContent = new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false }).format(now)
+    const madridParts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false, timeZoneName: 'short' }).formatToParts(now)
+    const madridHour = Number(madridParts.find((part) => part.type === 'hour')?.value || 0)
+    zonePill.textContent = madridParts.find((part) => part.type === 'timeZoneName')?.value || 'Madrid'
+    const offsetHours = (timeZone: string) => {
+      const values = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+      }).formatToParts(now).map((part) => [part.type, part.value]))
+      const zonedAsUtc = Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day), Number(values.hour), Number(values.minute), Number(values.second))
+      return Math.round((zonedAsUtc - Math.floor(now.getTime() / 1000) * 1000) / 3_600_000)
+    }
+    const hourDifference = offsetHours('Europe/Madrid') - offsetHours('America/Lima')
+    difference.textContent = `+${hourDifference} h`
+    const working = madridHour >= 9 && madridHour < 18
+    work.textContent = working ? 'Laboral' : 'No laboral'
+    work.style.color = working ? '#6ee7b7' : '#fcd34d'
+    period.textContent = madridHour >= 7 && madridHour < 21 ? '☀️' : '🌙'
+  }
+  main.addEventListener('click', () => {
+    const open = clock.classList.toggle('open')
+    main.setAttribute('aria-expanded', String(open))
+    const position = clampPosition(host.offsetLeft, host.offsetTop)
+    host.style.left = `${position.x}px`
+    host.style.top = `${position.y}px`
+  })
+  let dragStart: { pointerX: number; pointerY: number; hostX: number; hostY: number } | null = null
+  drag.addEventListener('pointerdown', (event) => {
+    dragStart = { pointerX: event.clientX, pointerY: event.clientY, hostX: host.offsetLeft, hostY: host.offsetTop }
+    drag.setPointerCapture(event.pointerId)
+    event.preventDefault()
+  })
+  drag.addEventListener('pointermove', (event) => {
+    if (!dragStart) return
+    const position = clampPosition(dragStart.hostX + event.clientX - dragStart.pointerX, dragStart.hostY + event.clientY - dragStart.pointerY)
+    host.style.left = `${position.x}px`
+    host.style.top = `${position.y}px`
+  })
+  drag.addEventListener('pointerup', (event) => {
+    if (!dragStart) return
+    dragStart = null
+    drag.releasePointerCapture(event.pointerId)
+    void saveFloatingClockPosition({ x: host.offsetLeft, y: host.offsetTop })
+  })
+  floatingClockResizeHandler = () => {
+    const position = clampPosition(host.offsetLeft, host.offsetTop)
+    host.style.left = `${position.x}px`
+    host.style.top = `${position.y}px`
+  }
+  window.addEventListener('resize', floatingClockResizeHandler)
+  shadow.querySelector('.close')?.addEventListener('click', () => {
+    void setFloatingClockEnabled(false)
+    removeFloatingClock()
+  })
+  update()
+  floatingClockTimer = window.setInterval(update, 1000)
+}
+
+async function syncFloatingClock() {
+  if (window !== window.top) return
+  if (await isFloatingClockEnabled()) await showFloatingClock()
+  else removeFloatingClock()
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === 'SHOW_NEXO_REMINDER') {
     showNexoReminder(String(message.title || 'Recordatorio de Nexo'), String(message.message || ''))
@@ -629,5 +775,13 @@ void chrome.runtime.sendMessage({ action: 'GET_ACTIVE_RECORDING' })
 injectStyles()
 findPasswordInputs().forEach(setupPasswordInput)
 observeNewInputs()
+void syncFloatingClock()
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && FLOATING_CLOCK_ENABLED_KEY in changes) {
+    if (changes[FLOATING_CLOCK_ENABLED_KEY].newValue === true) void showFloatingClock()
+    else removeFloatingClock()
+  }
+})
 
 export {}

@@ -1,11 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-import { AlarmClock, ArrowLeft, Bell, BellOff, Clock3, Globe2, LoaderCircle, Plus, Trash2, Volume2 } from 'lucide-react'
+import { AlarmClock, ArrowLeft, Bell, BellOff, Clock3, Globe2, LoaderCircle, MonitorUp, Plus, Trash2, Volume2 } from 'lucide-react'
 import {
   timestampToZonedInput,
   zonedInputToTimestamp,
   type ReminderTimeZone,
   type ScheduledReminder,
 } from '../../shared/reminder'
+import {
+  isFloatingClockEnabled,
+  setFloatingClockEnabled as persistFloatingClockEnabled,
+} from '../../shared/floating-clock'
 import { useReminders } from '../hooks/useReminders'
 import { IconButton } from './IconButton'
 
@@ -90,9 +94,11 @@ export function TimePanel({ onClose, onToast }: TimePanelProps) {
   const [timeZone, setTimeZone] = useState<ReminderTimeZone>('America/Lima')
   const [scheduledAt, setScheduledAt] = useState(() => timestampToZonedInput(defaultTimestamp(), 'America/Lima'))
   const [busy, setBusy] = useState('')
+  const [floatingClockEnabled, setFloatingClockEnabled] = useState(false)
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000)
+    void isFloatingClockEnabled().then(setFloatingClockEnabled)
     return () => window.clearInterval(timer)
   }, [])
 
@@ -182,6 +188,20 @@ export function TimePanel({ onClose, onToast }: TimePanelProps) {
     }
   }
 
+  const toggleFloatingClock = async () => {
+    const enabled = !floatingClockEnabled
+    try {
+      setBusy('floating-clock')
+      await persistFloatingClockEnabled(enabled)
+      setFloatingClockEnabled(enabled)
+      onToast(enabled ? 'Reloj flotante activado' : 'Reloj flotante desactivado', 'success')
+    } catch {
+      onToast('No se pudo cambiar el reloj flotante', 'error')
+    } finally {
+      setBusy('')
+    }
+  }
+
   return (
     <div className="flex h-screen flex-col bg-slate-50 dark:bg-slate-900">
       <header className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-vault-900 to-cyan-900 px-4 pb-5 pt-4">
@@ -196,6 +216,18 @@ export function TimePanel({ onClose, onToast }: TimePanelProps) {
         <div className="grid grid-cols-2 gap-2">
           <ZoneClock city="Lima" country="Perú" flag="🇵🇪" zone="America/Lima" now={now} accent="bg-red-400" />
           <ZoneClock city="Madrid" country="España" flag="🇪🇸" zone="Europe/Madrid" now={now} accent="bg-amber-300" />
+        </div>
+        <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-white backdrop-blur">
+          <span className="flex h-8 w-8 flex-none items-center justify-center rounded-xl bg-cyan-300/15 text-cyan-200"><MonitorUp className="h-4 w-4" /></span>
+          <button type="button" onClick={() => void toggleFloatingClock()} disabled={busy === 'floating-clock'} className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left disabled:opacity-60">
+            <span className="min-w-0">
+              <strong className="block text-xs">Reloj flotante de España</strong>
+              <small className="block truncate text-[10px] text-cyan-100/65">Visible mientras navegas por la web</small>
+            </span>
+            <span className={`relative h-5 w-9 flex-none rounded-full transition ${floatingClockEnabled ? 'bg-cyan-400' : 'bg-white/20'}`} aria-hidden="true">
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${floatingClockEnabled ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+            </span>
+          </button>
         </div>
       </header>
 

@@ -1,6 +1,6 @@
 {
   "name": "nexo-extension",
-  "version": "1.5.3",
+  "version": "1.6.2",
   "description": "Centro digital para contraseñas, alertas y automatizaciones",
   "private": true,
   "type": "module",
