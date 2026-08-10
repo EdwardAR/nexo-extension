@@ -9,7 +9,7 @@ import {
 } from '../shared/floating-clock'
 
 const HOST_ID = 'nexo-floating-clock-host'
-const CLOCK_WIDTH = 370
+const CLOCK_WIDTH = 310
 const VIEWPORT_MARGIN = 10
 
 let clockHost: HTMLElement | null = null
@@ -147,22 +147,34 @@ async function showFloatingClock() {
   shadow.innerHTML = `
     <style>
       :host{color-scheme:dark}*{box-sizing:border-box}
-      .clock{position:relative;width:${CLOCK_WIDTH}px;overflow:visible;border:1px solid rgba(148,163,184,.32);border-radius:11px;background:radial-gradient(circle at 82% 0%,rgba(49,46,129,.2),transparent 45%),linear-gradient(110deg,#070b1c 0%,#11162e 55%,#17203d 100%);box-shadow:0 8px 20px rgba(2,6,23,.42);color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-      .drag{display:flex;height:24px;align-items:end;padding:6px 11px 0;cursor:grab;user-select:none}.drag:active{cursor:grabbing}.brand{display:flex;align-items:center;gap:7px;color:#f8fafc;font-size:10px;font-weight:800;letter-spacing:.035em;text-transform:uppercase}.live{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399}
-      .content{display:grid;grid-template-columns:34px 1fr 1px 58px 1px 48px 18px;gap:6px;align-items:center;padding:4px 10px 9px}.badge{display:grid;width:34px;height:34px;place-items:center;border:1px solid #d9a514;border-radius:7px;background:rgba(15,23,42,.62);font-size:13px;font-weight:800}.primary{min-width:0}.time-row{display:flex;align-items:center;gap:5px}.time{font:800 20px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.045em}.zone{border-radius:6px;background:linear-gradient(180deg,#25476b,#17304c);padding:3px 6px;color:#e0f2fe;font-size:9px;font-weight:800;box-shadow:inset 0 1px rgba(255,255,255,.08)}.date{display:block;margin-top:4px;overflow:hidden;color:#b8c0d4;font-size:10px;font-weight:500;line-height:1;text-overflow:ellipsis;white-space:nowrap}.separator{width:1px;height:34px;background:rgba(148,163,184,.3)}.tile{min-width:0}.label{display:block;overflow:hidden;color:#cbd5e1;font-size:9px;font-weight:500;line-height:1.1;text-overflow:ellipsis;white-space:nowrap}.value{display:block;margin-top:4px;color:#f8fafc;font-size:13px;font-weight:800;line-height:1;white-space:nowrap}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.actions{position:relative;display:grid;place-items:center}.menu-button{border:0;border-radius:6px;background:transparent;padding:2px 5px;color:#9ca3b7;font:800 20px/1 system-ui;cursor:pointer}.menu-button:hover,.menu-button[aria-expanded="true"]{background:rgba(255,255,255,.08);color:#fff}.menu{position:absolute;right:-5px;top:28px;display:none;min-width:88px;border:1px solid rgba(148,163,184,.26);border-radius:7px;background:#111827;padding:4px;box-shadow:0 8px 20px rgba(2,6,23,.45);z-index:2}.menu.open{display:block}.close{width:100%;border:0;border-radius:4px;background:transparent;padding:5px 7px;color:#fecaca;font:600 9px system-ui;text-align:left;cursor:pointer}.close:hover{background:rgba(248,113,113,.14)}
+      .clock{position:relative;width:${CLOCK_WIDTH}px;border:1px solid rgba(148,163,184,.22);border-radius:14px;background:linear-gradient(135deg,#080e20 0%,#0f172a 60%,#162035 100%);box-shadow:0 6px 18px rgba(2,6,23,.55),inset 0 1px 0 rgba(255,255,255,.06);color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:grab;user-select:none}.clock:active{cursor:grabbing}
+      .row1{display:flex;align-items:center;gap:0;padding:8px 10px 5px}
+      .live{width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 6px #34d399;flex-shrink:0}
+      .madrid-time{font:800 22px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.04em;margin-left:8px}
+      .zone-pill{margin-left:5px;border-radius:5px;background:rgba(37,71,107,.7);padding:2px 5px;color:#bae6fd;font-size:8.5px;font-weight:800;letter-spacing:.02em;align-self:center}
+      .spacer{flex:1}
+      .diff-pill{border-radius:5px;background:rgba(99,102,241,.18);border:1px solid rgba(99,102,241,.3);padding:2px 6px;color:#c7d2fe;font-size:8.5px;font-weight:700;white-space:nowrap}
+      .menu-btn{border:0;border-radius:5px;background:transparent;padding:2px 4px;color:#64748b;font:700 16px/1 system-ui;cursor:pointer;margin-left:4px;flex-shrink:0}.menu-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+      .row2{display:flex;align-items:center;gap:6px;padding:0 10px 7px}
+      .date-str{color:#64748b;font-size:9.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+      .lima-wrap{display:flex;align-items:center;gap:4px;flex-shrink:0}
+      .lima-label{color:#475569;font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+      .lima-time{font:700 11px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:#94a3b8}
+      .menu{position:absolute;right:6px;top:36px;display:none;min-width:96px;border:1px solid rgba(148,163,184,.22);border-radius:8px;background:#0f172a;padding:4px;box-shadow:0 8px 20px rgba(2,6,23,.5);z-index:2}.menu.open{display:block}
+      .close-btn{width:100%;border:0;border-radius:5px;background:transparent;padding:5px 8px;color:#fca5a5;font:600 9.5px system-ui;text-align:left;cursor:pointer}.close-btn:hover{background:rgba(239,68,68,.12)}
     </style>
     <section class="clock" aria-label="Reloj de España">
-      <div class="drag" title="Arrastra para mover"><span class="brand"><i class="live"></i>Madrid - España</span></div>
-      <div class="content"><span class="badge">ES</span><div class="primary"><span class="time-row"><span class="time">--:--:--</span><span class="zone">CEST</span></span><span class="date"></span></div><i class="separator"></i><div class="tile"><span class="label">PC Lima</span><strong class="value mono lima">--:--</strong></div><i class="separator"></i><div class="tile"><span class="label">Dif.</span><strong class="value difference">+7 h</strong></div><div class="actions"><button class="menu-button" type="button" aria-label="Opciones del reloj" aria-expanded="false">⋮</button><div class="menu"><button class="close" type="button">Desactivar</button></div></div></div>
+      <div class="row1"><i class="live"></i><span class="madrid-time time">--:--:--</span><span class="zone-pill zone">CET</span><span class="spacer"></span><span class="diff-pill">Lima <strong class="difference">+7 h</strong></span><div style="position:relative"><button class="menu-btn" type="button" aria-label="Opciones del reloj" aria-expanded="false">⋮</button><div class="menu"><button class="close-btn" type="button">Desactivar</button></div></div></div>
+      <div class="row2"><span class="date-str date"></span><span class="lima-wrap"><span class="lima-label">Lima</span><span class="lima-time mono lima">--:--</span></span></div>
     </section>`
 
-  const drag = shadow.querySelector<HTMLElement>('.drag')
+  const drag = shadow.querySelector<HTMLElement>('.clock')
   const time = shadow.querySelector<HTMLElement>('.time')
   const date = shadow.querySelector<HTMLElement>('.date')
   const lima = shadow.querySelector<HTMLElement>('.lima')
   const difference = shadow.querySelector<HTMLElement>('.difference')
   const zone = shadow.querySelector<HTMLElement>('.zone')
-  const menuButton = shadow.querySelector<HTMLButtonElement>('.menu-button')
+  const menuButton = shadow.querySelector<HTMLButtonElement>('.menu-btn')
   const menu = shadow.querySelector<HTMLElement>('.menu')
   if (!drag || !time || !date || !lima || !difference || !zone || !menuButton || !menu) return
 
@@ -188,7 +200,8 @@ async function showFloatingClock() {
     difference.textContent = `${hourDifference >= 0 ? '+' : ''}${hourDifference} h`
   }
 
-  menuButton.addEventListener('click', () => {
+  menuButton.addEventListener('click', (e) => {
+    e.stopPropagation()
     const open = menu.classList.toggle('open')
     menuButton.setAttribute('aria-expanded', String(open))
   })
@@ -219,7 +232,7 @@ async function showFloatingClock() {
     void saveFloatingClockPosition(currentLayout)
   })
 
-  shadow.querySelector('.close')?.addEventListener('click', () => {
+  shadow.querySelector('.close-btn')?.addEventListener('click', () => {
     void setFloatingClockEnabled(false)
     removeFloatingClock()
   })

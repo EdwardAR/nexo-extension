@@ -55,8 +55,6 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 })
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.target === 'offscreen') return false
-
   const respond = async () => {
     switch (message.action) {
       case 'getAutofillData':
