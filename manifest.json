@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Nexo",
   "version": "1.6.7",
-  "description": "Tu centro digital para contraseñas, alertas y automatizaciones",
+  "description": "Tu centro digital para contraseñas y alertas",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
@@ -10,7 +10,6 @@
     "storage",
     "activeTab",
     "tabs",
-    "webNavigation",
     "clipboardWrite",
     "notifications",
     "alarms",

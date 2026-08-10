@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, LockKeyhole, Orbit, X, DatabaseBackup, BellRing, MousePointerClick, Clock3, KeyRound } from 'lucide-react'
+import { Search, Plus, LockKeyhole, Orbit, X, DatabaseBackup, BellRing, Clock3, KeyRound } from 'lucide-react'
 import type { PasswordEntry } from '../types'
 import { PasswordCard } from './PasswordCard'
 import { EmptyState } from './EmptyState'
@@ -15,7 +15,6 @@ interface DashboardProps {
   onLock: () => void
   onOpenData: () => void
   onOpenRenewals: () => void
-  onOpenAutomations: () => void
   onOpenTime: () => void
   dark: boolean
   onToggleTheme: () => void
@@ -29,7 +28,6 @@ export function Dashboard({
   onLock,
   onOpenData,
   onOpenRenewals,
-  onOpenAutomations,
   onOpenTime,
   dark,
   onToggleTheme,
@@ -84,16 +82,11 @@ export function Dashboard({
         </div>
       </header>
 
-      <nav className="relative -mt-4 grid grid-cols-3 gap-2.5 px-4" aria-label="Módulos de Nexo">
+      <nav className="relative -mt-4 grid grid-cols-2 gap-2.5 px-4" aria-label="Módulos de Nexo">
         <button onClick={onOpenTime} className="group rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-cyan-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-cyan-700">
           <span className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700 transition group-hover:bg-cyan-100 dark:bg-cyan-950/60 dark:text-cyan-300"><Clock3 className="h-4 w-4" /></span>
           <strong className="block text-xs text-slate-900 dark:text-white">Horarios</strong>
           <small className="text-[10px] text-slate-400">Alertas</small>
-        </button>
-        <button onClick={onOpenAutomations} className="group rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-vault-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-vault-700">
-          <span className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl bg-vault-50 text-vault-600 transition group-hover:bg-vault-100 dark:bg-vault-950/60 dark:text-vault-300"><MousePointerClick className="h-4 w-4" /></span>
-          <strong className="block text-xs text-slate-900 dark:text-white">Flujos</strong>
-          <small className="text-[10px] text-slate-400">Automatizar</small>
         </button>
         <button onClick={onOpenRenewals} className="group relative rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-md shadow-slate-200/50 transition hover:-translate-y-0.5 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-800 dark:shadow-none dark:hover:border-amber-700">
           <span className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition group-hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300"><BellRing className="h-4 w-4" /></span>
