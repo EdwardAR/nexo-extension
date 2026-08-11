@@ -15,6 +15,7 @@ import { RenewalPanel } from './components/RenewalPanel'
 import { OnboardingSlides } from './components/OnboardingSlides'
 import { useOnboarding } from './hooks/useOnboarding'
 import { TimePanel } from './components/TimePanel'
+import { PasswordsPanel } from './components/PasswordsPanel'
 
 export default function App() {
   const {
@@ -29,6 +30,7 @@ export default function App() {
   const [showDataModal, setShowDataModal] = useState(false)
   const [showRenewalPanel, setShowRenewalPanel] = useState(false)
   const [showTimePanel, setShowTimePanel] = useState(false)
+  const [showPasswordsPanel, setShowPasswordsPanel] = useState(false)
   const [viewingEntry, setViewingEntry] = useState<PasswordEntry | null>(null)
   const draftOpenedRef = useRef(false)
 
@@ -201,17 +203,51 @@ export default function App() {
     )
   }
 
+  if (showPasswordsPanel) {
+    return (
+      <>
+        <PasswordsPanel
+          entries={entries}
+          onClose={() => setShowPasswordsPanel(false)}
+          onAdd={() => setShowAddModal(true)}
+          onView={setViewingEntry}
+          onCopy={handleCopy}
+        />
+
+        {showAddModal && (
+          <AddPasswordModal
+            onClose={() => setShowAddModal(false)}
+            onSave={handleAdd}
+            onDraftChange={handleDraftChange}
+            onDiscard={handleDiscardDraft}
+            initialDraft={draft}
+          />
+        )}
+
+        {viewingEntry && (
+          <ViewPasswordModal
+            entry={viewingEntry}
+            onClose={() => setViewingEntry(null)}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onCopy={handleCopy}
+          />
+        )}
+
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </>
+    )
+  }
+
   return (
     <>
       <Dashboard
         entries={entries}
-        onAdd={() => setShowAddModal(true)}
-        onView={setViewingEntry}
-        onCopy={handleCopy}
         onLock={handleLock}
         onOpenData={() => setShowDataModal(true)}
         onOpenRenewals={() => setShowRenewalPanel(true)}
         onOpenTime={() => setShowTimePanel(true)}
+        onOpenPasswords={() => setShowPasswordsPanel(true)}
         dark={dark}
         onToggleTheme={toggle}
       />

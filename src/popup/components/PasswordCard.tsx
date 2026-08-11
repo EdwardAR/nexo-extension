@@ -14,9 +14,10 @@ export function PasswordCard({ entry, onView, onCopy }: PasswordCardProps) {
   const initial = (domain[0] || '?').toUpperCase()
 
   return (
-    <article className="card group animate-slide-up p-3">
+    <article className="card group relative animate-slide-up overflow-hidden p-3">
+      <span className="absolute inset-y-3 left-0 w-0.5 rounded-r-full bg-vault-400 opacity-0 transition-opacity group-hover:opacity-100" />
       <div className="flex items-center gap-3">
-        <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-700">
+        <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-700">
           <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-vault-500 to-vault-700 text-sm font-bold text-white">
             {initial}
           </span>
@@ -34,11 +35,11 @@ export function PasswordCard({ entry, onView, onCopy }: PasswordCardProps) {
           className="min-w-0 flex-1 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-vault-500"
           aria-label={`Ver acceso de ${domain}`}
         >
-          <p className="truncate text-sm font-semibold text-slate-900 transition-colors group-hover:text-vault-600 dark:text-slate-100 dark:group-hover:text-vault-300">{domain}</p>
+          <p className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-vault-600 dark:text-slate-100 dark:group-hover:text-vault-300">{domain}</p>
           <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{entry.username}</p>
         </button>
 
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 text-slate-400">
           <IconButton label="Copiar usuario" onClick={() => onCopy(entry.username, 'Usuario')}>
             <Copy className="w-4 h-4" />
           </IconButton>
