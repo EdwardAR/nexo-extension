@@ -1,9 +1,11 @@
 import {
   loadVault,
   RENEWAL_SCHEDULE_KEY,
+  saveDraft as persistPasswordDraft,
   type RenewalScheduleItem,
 } from '../popup/lib/storage'
 import { getHostname } from '../shared/site'
+import type { PasswordDraft } from '../popup/types'
 import { differenceInDays } from '../shared/renewal'
 import {
   loadReminders,
@@ -25,6 +27,23 @@ interface VaultSession {
 }
 
 const reminderDeliveryInFlight = new Set<string>()
+let draftSaveQueue: Promise<void> = Promise.resolve()
+
+function isPasswordDraft(value: unknown): value is PasswordDraft {
+  if (!value || typeof value !== 'object') return false
+  const draft = value as Partial<PasswordDraft>
+  return (
+    typeof draft.site === 'string' &&
+    typeof draft.username === 'string' &&
+    typeof draft.password === 'string' &&
+    typeof draft.notes === 'string' &&
+    typeof draft.passwordChangedOn === 'string' &&
+    typeof draft.renewalIntervalMonths === 'number' &&
+    Number.isFinite(draft.renewalIntervalMonths) &&
+    typeof draft.updatedAt === 'number' &&
+    Number.isFinite(draft.updatedAt)
+  )
+}
 
 async function getSession(): Promise<VaultSession | null> {
   const result = await chrome.storage.session.get(SESSION_KEY)
@@ -87,6 +106,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           return { error: 'Session not active' }
         }
         return { password: session.password }
+      }
+
+      case 'SAVE_PASSWORD_DRAFT': {
+        const session = await getSession()
+        if (!session?.active || !session.password) {
+          return { error: 'Session not active' }
+        }
+        if (!isPasswordDraft(message.draft)) {
+          return { error: 'Invalid password draft' }
+        }
+
+        draftSaveQueue = draftSaveQueue
+          .catch(() => undefined)
+          .then(() => persistPasswordDraft(message.draft, session.password))
+        await draftSaveQueue
+        return { success: true }
       }
 
       case 'CHECK_RENEWALS':

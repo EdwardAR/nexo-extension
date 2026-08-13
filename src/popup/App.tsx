@@ -17,6 +17,22 @@ import { useOnboarding } from './hooks/useOnboarding'
 import { TimePanel } from './components/TimePanel'
 import { PasswordsPanel } from './components/PasswordsPanel'
 
+async function getActivePageUrl() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+    if (!tab?.url) return ''
+
+    const url = new URL(tab.url)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return ''
+
+    url.search = ''
+    url.hash = ''
+    return url.toString()
+  } catch {
+    return ''
+  }
+}
+
 export default function App() {
   const {
     unlocked, entries, draft, loading, unlock, lock,
@@ -31,6 +47,7 @@ export default function App() {
   const [showRenewalPanel, setShowRenewalPanel] = useState(false)
   const [showTimePanel, setShowTimePanel] = useState(false)
   const [showPasswordsPanel, setShowPasswordsPanel] = useState(false)
+  const [addInitialSite, setAddInitialSite] = useState('')
   const [viewingEntry, setViewingEntry] = useState<PasswordEntry | null>(null)
   const draftOpenedRef = useRef(false)
 
@@ -71,6 +88,16 @@ export default function App() {
     },
     [addEntry, addToast]
   )
+
+  const openAddModal = useCallback(async () => {
+    setAddInitialSite(await getActivePageUrl())
+    setShowAddModal(true)
+  }, [])
+
+  const closeAddModal = useCallback(() => {
+    setShowAddModal(false)
+    setAddInitialSite('')
+  }, [])
 
   const handleUpdate = useCallback(
     async (id: string, updates: Partial<PasswordEntry>) => {
@@ -209,18 +236,19 @@ export default function App() {
         <PasswordsPanel
           entries={entries}
           onClose={() => setShowPasswordsPanel(false)}
-          onAdd={() => setShowAddModal(true)}
+          onAdd={() => void openAddModal()}
           onView={setViewingEntry}
           onCopy={handleCopy}
         />
 
         {showAddModal && (
           <AddPasswordModal
-            onClose={() => setShowAddModal(false)}
+            onClose={closeAddModal}
             onSave={handleAdd}
             onDraftChange={handleDraftChange}
             onDiscard={handleDiscardDraft}
             initialDraft={draft}
+            initialSite={addInitialSite}
           />
         )}
 
@@ -254,11 +282,12 @@ export default function App() {
 
       {showAddModal && (
         <AddPasswordModal
-          onClose={() => setShowAddModal(false)}
+          onClose={closeAddModal}
           onSave={handleAdd}
           onDraftChange={handleDraftChange}
           onDiscard={handleDiscardDraft}
           initialDraft={draft}
+          initialSite={addInitialSite}
         />
       )}
 

@@ -95,9 +95,16 @@ export function useVault() {
   }, [getPassword])
 
   const saveDraft = useCallback(async (nextDraft: PasswordDraft) => {
-    await storage.saveDraft(nextDraft, await getPassword())
+    const response = await chrome.runtime.sendMessage({
+      action: 'SAVE_PASSWORD_DRAFT',
+      draft: nextDraft,
+    })
+    if (!response?.success) {
+      if (response?.error === 'Session not active') clearMemory()
+      throw new Error(response?.error || 'Could not save password draft')
+    }
     setDraft(nextDraft)
-  }, [getPassword])
+  }, [clearMemory])
 
   const discardDraft = useCallback(async () => {
     await storage.clearDraft()

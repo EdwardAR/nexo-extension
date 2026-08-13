@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   AlertTriangle, CalendarDays, Eye, EyeOff, FileText,
   Globe, KeyRound, RefreshCw, Save, User, X,
@@ -37,6 +37,7 @@ export function AddPasswordModal({
   const [showPassword, setShowPassword] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [saving, setSaving] = useState(false)
+  const completedRef = useRef(false)
 
   const hasContent = Boolean(site || username || password || notes)
   const draft = (): PasswordDraft => ({
@@ -48,6 +49,8 @@ export function AddPasswordModal({
     renewalIntervalMonths,
     updatedAt: Date.now(),
   })
+  const latestDraftRef = useRef(draft())
+  latestDraftRef.current = draft()
 
   useEffect(() => {
     if (!hasContent) return
@@ -56,14 +59,24 @@ export function AddPasswordModal({
   }, [site, username, password, notes, passwordChangedOn, renewalIntervalMonths])
 
   useEffect(() => {
+    const persistLatestDraft = () => {
+      const latestDraft = latestDraftRef.current
+      const containsInput = Boolean(
+        latestDraft.site || latestDraft.username || latestDraft.password || latestDraft.notes
+      )
+      if (!completedRef.current && containsInput) void onDraftChange(latestDraft)
+    }
     const persistWhenHidden = () => {
-      if (document.visibilityState === 'hidden' && hasContent) {
-        void onDraftChange(draft())
-      }
+      if (document.visibilityState === 'hidden') persistLatestDraft()
     }
     document.addEventListener('visibilitychange', persistWhenHidden)
-    return () => document.removeEventListener('visibilitychange', persistWhenHidden)
-  }, [site, username, password, notes, passwordChangedOn, renewalIntervalMonths])
+    window.addEventListener('pagehide', persistLatestDraft)
+    return () => {
+      document.removeEventListener('visibilitychange', persistWhenHidden)
+      window.removeEventListener('pagehide', persistLatestDraft)
+      persistLatestDraft()
+    }
+  }, [onDraftChange])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -82,7 +95,10 @@ export function AddPasswordModal({
         renewalIntervalMonths,
         createdAt: now,
         updatedAt: now,
-      })) onClose()
+      })) {
+        completedRef.current = true
+        onClose()
+      }
     } finally {
       setSaving(false)
     }
@@ -90,6 +106,7 @@ export function AddPasswordModal({
 
   const discard = async () => {
     await onDiscard()
+    completedRef.current = true
     onClose()
   }
 
