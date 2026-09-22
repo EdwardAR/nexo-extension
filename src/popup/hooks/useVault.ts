@@ -1,114 +1,152 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PasswordDraft, PasswordEntry } from '../types'
 import * as storage from '../lib/storage'
+import {
+  clearVaultSession,
+  getVaultSession,
+  startVaultSession,
+} from '../../shared/vault-session'
 
 export function useVault() {
   const [unlocked, setUnlocked] = useState(false)
   const [entries, setEntries] = useState<PasswordEntry[]>([])
   const [draft, setDraft] = useState<PasswordDraft | null>(null)
   const [loading, setLoading] = useState(false)
+  const entriesRef = useRef<PasswordEntry[]>([])
+  const restoreSessionRef = useRef<Promise<storage.LoadedVaultData | null> | null>(null)
+  const entryWriteQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const draftWriteQueueRef = useRef<Promise<void>>(Promise.resolve())
+
+  const replaceEntries = useCallback((nextEntries: PasswordEntry[]) => {
+    entriesRef.current = nextEntries
+    setEntries(nextEntries)
+  }, [])
 
   const clearMemory = useCallback(() => {
     setUnlocked(false)
-    setEntries([])
+    replaceEntries([])
     setDraft(null)
-  }, [])
+  }, [replaceEntries])
 
-  const loadData = useCallback(async (password: string) => {
-    const data = await storage.loadVault(password)
-    setEntries(data)
-    setDraft(await storage.loadDraft(password))
-    await storage.syncRenewalSchedule(data)
+  const restoreSession = useCallback(async (): Promise<storage.LoadedVaultData | null> => {
+    const session = await getVaultSession()
+    if (!session) return null
+
+    const snapshot = await storage.readVaultSnapshot()
+    return storage.loadVaultSnapshot(snapshot, session.password)
   }, [])
 
   useEffect(() => {
-    const checkSessionStatus = async () => {
-      try {
-        const status = await chrome.runtime.sendMessage({ action: 'GET_SESSION_STATUS' })
-        if (!status.sessionActive || !status.hasPassword) return
+    let mounted = true
+    restoreSessionRef.current ??= restoreSession()
 
-        const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-        if (!response.password) return clearMemory()
-        await loadData(response.password)
+    restoreSessionRef.current
+      .then((data) => {
+        if (!mounted || !data) return
+        replaceEntries(data.entries)
+        setDraft(data.draft)
         setUnlocked(true)
-      } catch {
-        clearMemory()
-      }
-    }
+      })
+      .catch(() => {
+        void clearVaultSession()
+        if (mounted) clearMemory()
+      })
 
-    const handleMessage = (request: { action?: string }) => {
-      if (request.action === 'SESSION_LOCKED') clearMemory()
+    return () => {
+      mounted = false
     }
-
-    void checkSessionStatus()
-    chrome.runtime.onMessage.addListener(handleMessage)
-    return () => chrome.runtime.onMessage.removeListener(handleMessage)
-  }, [clearMemory, loadData])
+  }, [clearMemory, replaceEntries, restoreSession])
 
   const unlock = useCallback(async (password: string): Promise<boolean> => {
     setLoading(true)
     try {
-      const exists = await storage.isMasterPasswordSet()
-      if (!exists) await storage.setMasterPassword(password)
-      else if (!await storage.verifyMasterPassword(password)) return false
+      const snapshot = await storage.readVaultSnapshot()
+      const validPassword = await storage.verifyOrSetMasterPassword(password, snapshot)
+      if (!validPassword) return false
 
-      await chrome.runtime.sendMessage({ action: 'UNLOCK_VAULT', password })
-      await loadData(password)
+      const data = await storage.loadVaultSnapshot(snapshot, password)
+      await startVaultSession(password)
+      replaceEntries(data.entries)
+      setDraft(data.draft)
       setUnlocked(true)
       return true
+    } catch {
+      return false
     } finally {
       setLoading(false)
     }
-  }, [loadData])
+  }, [replaceEntries])
 
   const lock = useCallback(async () => {
-    await chrome.runtime.sendMessage({ action: 'LOCK_VAULT' })
+    await clearVaultSession()
     clearMemory()
   }, [clearMemory])
 
   const getPassword = useCallback(async () => {
-    const response = await chrome.runtime.sendMessage({ action: 'GET_PASSWORD' })
-    if (response.password) return response.password as string
+    const session = await getVaultSession()
+    if (session?.password) return session.password
     clearMemory()
     throw new Error('Vault session expired')
   }, [clearMemory])
 
+  const persistEntries = useCallback(async (
+    createNextEntries: (currentEntries: PasswordEntry[]) => PasswordEntry[]
+  ) => {
+    const write = entryWriteQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const nextEntries = createNextEntries(entriesRef.current)
+        await storage.persistVault(nextEntries, await getPassword())
+        replaceEntries(nextEntries)
+      })
+
+    entryWriteQueueRef.current = write
+    await write
+  }, [getPassword, replaceEntries])
+
   const addEntry = useCallback(async (entry: PasswordEntry) => {
-    await storage.addEntry(entry, await getPassword())
-    await storage.clearDraft()
-    setEntries((current) => [...current, entry])
-    setDraft(null)
-  }, [getPassword])
+    await persistEntries((currentEntries) => [...currentEntries, entry])
+    const clearDraft = draftWriteQueueRef.current
+      .catch(() => undefined)
+      .then(storage.clearDraft)
+      .then(() => setDraft(null))
+    draftWriteQueueRef.current = clearDraft
+    await clearDraft
+  }, [persistEntries])
 
   const updateEntry = useCallback(async (id: string, updates: Partial<PasswordEntry>) => {
-    await storage.updateEntry(id, updates, await getPassword())
-    setEntries((current) =>
-      current.map((entry) =>
+    await persistEntries((currentEntries) => {
+      if (!currentEntries.some((entry) => entry.id === id)) {
+        throw new Error('Entry not found')
+      }
+      return currentEntries.map((entry) =>
         entry.id === id ? { ...entry, ...updates, updatedAt: Date.now() } : entry
       )
-    )
-  }, [getPassword])
+    })
+  }, [persistEntries])
 
   const deleteEntry = useCallback(async (id: string) => {
-    await storage.deleteEntry(id, await getPassword())
-    setEntries((current) => current.filter((entry) => entry.id !== id))
-  }, [getPassword])
+    await persistEntries((currentEntries) => currentEntries.filter((entry) => entry.id !== id))
+  }, [persistEntries])
 
   const saveDraft = useCallback(async (nextDraft: PasswordDraft) => {
-    const response = await chrome.runtime.sendMessage({
-      action: 'SAVE_PASSWORD_DRAFT',
-      draft: nextDraft,
-    })
-    if (!response?.success) {
-      if (response?.error === 'Session not active') clearMemory()
-      throw new Error(response?.error || 'Could not save password draft')
-    }
-    setDraft(nextDraft)
-  }, [clearMemory])
+    const write = draftWriteQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        await storage.saveDraft(nextDraft, await getPassword())
+        setDraft(nextDraft)
+      })
+    draftWriteQueueRef.current = write
+    await write
+  }, [getPassword])
 
   const discardDraft = useCallback(async () => {
-    await storage.clearDraft()
-    setDraft(null)
+    const clearDraft = draftWriteQueueRef.current
+      .catch(() => undefined)
+      .then(storage.clearDraft)
+      .then(() => setDraft(null))
+    draftWriteQueueRef.current = clearDraft
+    await clearDraft
   }, [])
 
   return {

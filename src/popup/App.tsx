@@ -1,21 +1,30 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { lazy, Suspense, useState, useCallback, useEffect, useRef } from 'react'
 import type { PasswordDraft, PasswordEntry } from './types'
 import { useVault } from './hooks/useVault'
 import { useTheme } from './hooks/useTheme'
 import { useToast } from './hooks/useToast'
 import { LockScreen } from './components/LockScreen'
-import { Dashboard } from './components/Dashboard'
-import { AddPasswordModal } from './components/AddPasswordModal'
-import { ViewPasswordModal } from './components/ViewPasswordModal'
 import { ToastContainer } from './components/Toast'
 import { ThemeToggle } from './components/ThemeToggle'
-import { DataManagementModal } from './components/DataManagementModal'
-import { createBackup, restoreBackup } from './lib/backup'
-import { RenewalPanel } from './components/RenewalPanel'
-import { OnboardingSlides } from './components/OnboardingSlides'
 import { useOnboarding } from './hooks/useOnboarding'
-import { TimePanel } from './components/TimePanel'
-import { PasswordsPanel } from './components/PasswordsPanel'
+
+const Dashboard = lazy(() => import('./components/Dashboard').then(({ Dashboard }) => ({ default: Dashboard })))
+const AddPasswordModal = lazy(() => import('./components/AddPasswordModal').then(({ AddPasswordModal }) => ({ default: AddPasswordModal })))
+const ViewPasswordModal = lazy(() => import('./components/ViewPasswordModal').then(({ ViewPasswordModal }) => ({ default: ViewPasswordModal })))
+const DataManagementModal = lazy(() => import('./components/DataManagementModal').then(({ DataManagementModal }) => ({ default: DataManagementModal })))
+const RenewalPanel = lazy(() => import('./components/RenewalPanel').then(({ RenewalPanel }) => ({ default: RenewalPanel })))
+const OnboardingSlides = lazy(() => import('./components/OnboardingSlides').then(({ OnboardingSlides }) => ({ default: OnboardingSlides })))
+const TimePanel = lazy(() => import('./components/TimePanel').then(({ TimePanel }) => ({ default: TimePanel })))
+const PasswordsPanel = lazy(() => import('./components/PasswordsPanel').then(({ PasswordsPanel }) => ({ default: PasswordsPanel })))
+
+function LoadingScreen() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 text-sm font-medium text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+      <span className="h-6 w-6 animate-spin rounded-full border-2 border-vault-500 border-t-transparent" aria-hidden="true" />
+      <span role="status">Abriendo Nexo…</span>
+    </main>
+  )
+}
 
 async function getActivePageUrl() {
   try {
@@ -158,6 +167,7 @@ export default function App() {
 
   const handleExport = useCallback(async () => {
     try {
+      const { createBackup } = await import('./lib/backup')
       const backup = await createBackup()
       const blob = new Blob([JSON.stringify(backup, null, 2)], {
         type: 'application/json',
@@ -181,6 +191,7 @@ export default function App() {
   const handleImport = useCallback(
     async (backup: unknown) => {
       try {
+        const { restoreBackup } = await import('./lib/backup')
         await restoreBackup(backup)
         await lock()
         addToast('Respaldo restaurado. Desbloquéalo con su contraseña maestra.', 'success')
@@ -193,7 +204,7 @@ export default function App() {
     [lock, addToast]
   )
 
-  if (showOnboarding === null) return null
+  if (showOnboarding === null) return <LoadingScreen />
 
   if (showOnboarding) {
     return (
@@ -201,7 +212,9 @@ export default function App() {
         <div className="absolute top-3 right-3 z-10">
           <ThemeToggle dark={dark} onToggle={toggle} />
         </div>
-        <OnboardingSlides onFinish={completeOnboarding} />
+        <Suspense fallback={<LoadingScreen />}>
+          <OnboardingSlides onFinish={completeOnboarding} />
+        </Suspense>
       </>
     )
   }
@@ -221,10 +234,12 @@ export default function App() {
   if (showTimePanel) {
     return (
       <>
-        <TimePanel
-          onClose={() => setShowTimePanel(false)}
-          onToast={addToast}
-        />
+        <Suspense fallback={<LoadingScreen />}>
+          <TimePanel
+            onClose={() => setShowTimePanel(false)}
+            onToast={addToast}
+          />
+        </Suspense>
         <ToastContainer toasts={toasts} onRemove={removeToast} />
       </>
     )
@@ -233,14 +248,62 @@ export default function App() {
   if (showPasswordsPanel) {
     return (
       <>
-        <PasswordsPanel
-          entries={entries}
-          onClose={() => setShowPasswordsPanel(false)}
-          onAdd={() => void openAddModal()}
-          onView={setViewingEntry}
-          onCopy={handleCopy}
-        />
+        <Suspense fallback={<LoadingScreen />}>
+          <PasswordsPanel
+            entries={entries}
+            onClose={() => setShowPasswordsPanel(false)}
+            onAdd={() => void openAddModal()}
+            onView={setViewingEntry}
+            onCopy={handleCopy}
+          />
+        </Suspense>
 
+        <Suspense fallback={null}>
+          {showAddModal && (
+            <AddPasswordModal
+              onClose={closeAddModal}
+              onSave={handleAdd}
+              onDraftChange={handleDraftChange}
+              onDiscard={handleDiscardDraft}
+              initialDraft={draft}
+              initialSite={addInitialSite}
+            />
+          )}
+        </Suspense>
+
+        <Suspense fallback={null}>
+          {viewingEntry && (
+            <ViewPasswordModal
+              entry={viewingEntry}
+              onClose={() => setViewingEntry(null)}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+              onCopy={handleCopy}
+            />
+          )}
+        </Suspense>
+
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Suspense fallback={<LoadingScreen />}>
+        <Dashboard
+          entries={entries}
+          onLock={handleLock}
+          onOpenData={() => setShowDataModal(true)}
+          onOpenRenewals={() => setShowRenewalPanel(true)}
+          onOpenTime={() => setShowTimePanel(true)}
+          onOpenPasswords={() => setShowPasswordsPanel(true)}
+          dark={dark}
+          onToggleTheme={toggle}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
         {showAddModal && (
           <AddPasswordModal
             onClose={closeAddModal}
@@ -251,7 +314,9 @@ export default function App() {
             initialSite={addInitialSite}
           />
         )}
+      </Suspense>
 
+      <Suspense fallback={null}>
         {viewingEntry && (
           <ViewPasswordModal
             entry={viewingEntry}
@@ -261,61 +326,27 @@ export default function App() {
             onCopy={handleCopy}
           />
         )}
+      </Suspense>
 
-        <ToastContainer toasts={toasts} onRemove={removeToast} />
-      </>
-    )
-  }
+      <Suspense fallback={null}>
+        {showDataModal && (
+          <DataManagementModal
+            onClose={() => setShowDataModal(false)}
+            onExport={handleExport}
+            onImport={handleImport}
+          />
+        )}
+      </Suspense>
 
-  return (
-    <>
-      <Dashboard
-        entries={entries}
-        onLock={handleLock}
-        onOpenData={() => setShowDataModal(true)}
-        onOpenRenewals={() => setShowRenewalPanel(true)}
-        onOpenTime={() => setShowTimePanel(true)}
-        onOpenPasswords={() => setShowPasswordsPanel(true)}
-        dark={dark}
-        onToggleTheme={toggle}
-      />
-
-      {showAddModal && (
-        <AddPasswordModal
-          onClose={closeAddModal}
-          onSave={handleAdd}
-          onDraftChange={handleDraftChange}
-          onDiscard={handleDiscardDraft}
-          initialDraft={draft}
-          initialSite={addInitialSite}
-        />
-      )}
-
-      {viewingEntry && (
-        <ViewPasswordModal
-          entry={viewingEntry}
-          onClose={() => setViewingEntry(null)}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-          onCopy={handleCopy}
-        />
-      )}
-
-      {showDataModal && (
-        <DataManagementModal
-          onClose={() => setShowDataModal(false)}
-          onExport={handleExport}
-          onImport={handleImport}
-        />
-      )}
-
-      {showRenewalPanel && (
-        <RenewalPanel
-          entries={entries}
-          onClose={() => setShowRenewalPanel(false)}
-          onView={setViewingEntry}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showRenewalPanel && (
+          <RenewalPanel
+            entries={entries}
+            onClose={() => setShowRenewalPanel(false)}
+            onView={setViewingEntry}
+          />
+        )}
+      </Suspense>
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </>

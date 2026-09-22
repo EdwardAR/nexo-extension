@@ -1,12 +1,11 @@
 import {
   loadVault,
   RENEWAL_SCHEDULE_KEY,
-  saveDraft as persistPasswordDraft,
   type RenewalScheduleItem,
 } from '../popup/lib/storage'
 import { getHostname } from '../shared/site'
-import type { PasswordDraft } from '../popup/types'
 import { differenceInDays } from '../shared/renewal'
+import { clearVaultSession, getVaultSession } from '../shared/vault-session'
 import {
   loadReminders,
   REMINDER_ALARM_PREFIX,
@@ -16,61 +15,28 @@ import {
   type ScheduledReminder,
 } from '../shared/reminder'
 
-const SESSION_KEY = 'vaultSession'
 const RENEWAL_ALARM = 'checkRenewals'
 const NOTIFICATION_ID = 'password-renewal-reminder'
 const REMINDER_WATCHDOG_ALARM = 'nexo-reminder-watchdog'
 
-interface VaultSession {
-  active: boolean
-  password: string
-}
-
 const reminderDeliveryInFlight = new Set<string>()
-let draftSaveQueue: Promise<void> = Promise.resolve()
-
-function isPasswordDraft(value: unknown): value is PasswordDraft {
-  if (!value || typeof value !== 'object') return false
-  const draft = value as Partial<PasswordDraft>
-  return (
-    typeof draft.site === 'string' &&
-    typeof draft.username === 'string' &&
-    typeof draft.password === 'string' &&
-    typeof draft.notes === 'string' &&
-    typeof draft.passwordChangedOn === 'string' &&
-    typeof draft.renewalIntervalMonths === 'number' &&
-    Number.isFinite(draft.renewalIntervalMonths) &&
-    typeof draft.updatedAt === 'number' &&
-    Number.isFinite(draft.updatedAt)
-  )
-}
-
-async function getSession(): Promise<VaultSession | null> {
-  const result = await chrome.storage.session.get(SESSION_KEY)
-  return result[SESSION_KEY] ?? null
-}
-
-async function clearSession() {
-  await chrome.storage.session.remove([SESSION_KEY, 'sessionActive'])
-}
+let reminderSchedulerInitialization: Promise<void> | null = null
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Nexo installed')
   scheduleRenewalChecks()
-  void restoreReminderAlarms()
-  void ensureReminderWatchdog()
+  scheduleReminderInitialization()
 })
 
 chrome.runtime.onStartup.addListener(() => {
   scheduleRenewalChecks()
-  void restoreReminderAlarms()
-  void ensureReminderWatchdog()
+  scheduleReminderInitialization()
 })
 
 chrome.windows.onRemoved.addListener(async (windowId) => {
   await reopenUnacknowledgedAlarmWindow(windowId)
   const openWindows = await chrome.windows.getAll()
-  if (openWindows.length === 0) await clearSession()
+  if (openWindows.length === 0) await clearVaultSession()
 })
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -81,48 +47,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
       case 'saveDetectedCredentials':
         return handleSaveDetected()
-
-      case 'UNLOCK_VAULT':
-        await chrome.storage.session.set({
-          [SESSION_KEY]: { active: true, password: message.password },
-        })
-        return { success: true }
-
-      case 'LOCK_VAULT':
-        await clearSession()
-        return { success: true }
-
-      case 'GET_SESSION_STATUS': {
-        const session = await getSession()
-        return {
-          sessionActive: session?.active === true,
-          hasPassword: Boolean(session?.password),
-        }
-      }
-
-      case 'GET_PASSWORD': {
-        const session = await getSession()
-        if (!session?.active || !session.password) {
-          return { error: 'Session not active' }
-        }
-        return { password: session.password }
-      }
-
-      case 'SAVE_PASSWORD_DRAFT': {
-        const session = await getSession()
-        if (!session?.active || !session.password) {
-          return { error: 'Session not active' }
-        }
-        if (!isPasswordDraft(message.draft)) {
-          return { error: 'Invalid password draft' }
-        }
-
-        draftSaveQueue = draftSaveQueue
-          .catch(() => undefined)
-          .then(() => persistPasswordDraft(message.draft, session.password))
-        await draftSaveQueue
-        return { success: true }
-      }
 
       case 'CHECK_RENEWALS':
         await checkRenewals()
@@ -219,9 +143,18 @@ async function ensureReminderWatchdog() {
 }
 
 async function initializeReminderScheduler() {
-  await ensureReminderWatchdog()
-  await restoreReminderAlarms()
-  await checkDueReminders()
+  reminderSchedulerInitialization ??= (async () => {
+    await ensureReminderWatchdog()
+    await restoreReminderAlarms()
+    await checkDueReminders()
+  })().finally(() => {
+    reminderSchedulerInitialization = null
+  })
+  return reminderSchedulerInitialization
+}
+
+function scheduleReminderInitialization() {
+  void initializeReminderScheduler().catch(() => undefined)
 }
 
 async function checkDueReminders() {
@@ -541,14 +474,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     void checkRenewals()
   }
   if (areaName === 'local' && REMINDERS_KEY in changes) {
-    void restoreReminderAlarms()
+    scheduleReminderInitialization()
   }
 })
 
-void initializeReminderScheduler()
-
 async function handleGetAutofillData(url: string) {
-  const session = await getSession()
+  const session = await getVaultSession()
   if (!session?.password) return { success: false, error: 'Vault locked' }
 
   const currentHostname = getHostname(url)
@@ -561,7 +492,7 @@ async function handleGetAutofillData(url: string) {
 }
 
 async function handleSaveDetected() {
-  const session = await getSession()
+  const session = await getVaultSession()
   if (!session?.password) {
     return { success: false, error: 'Vault locked - cannot save credentials' }
   }

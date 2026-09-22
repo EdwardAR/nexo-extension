@@ -9,9 +9,19 @@ import {
 } from '../shared/floating-clock'
 
 const HOST_ID = 'nexo-floating-clock-host'
-const CLOCK_WIDTH = 225
-const CLOCK_HEIGHT = 56
+const CLOCK_WIDTH = 170
+const CLOCK_HEIGHT = 44
 const VIEWPORT_MARGIN = 10
+
+type ClockTimeZone = 'America/Lima' | 'Europe/Madrid'
+
+interface ClockFormatters {
+  madridTime: Intl.DateTimeFormat
+  madridDate: Intl.DateTimeFormat
+  limaTime: Intl.DateTimeFormat
+  madridZone: Intl.DateTimeFormat
+  offsets: Record<ClockTimeZone, Intl.DateTimeFormat>
+}
 
 let clockHost: HTMLElement | null = null
 let clockTimer: number | undefined
@@ -21,6 +31,60 @@ let currentLayout: FloatingClockPosition = {
   y: 0.12,
   mode: 'viewport-ratio',
   expanded: true,
+}
+let clockFormatters: ClockFormatters | null = null
+
+function getClockFormatters(): ClockFormatters {
+  if (clockFormatters) return clockFormatters
+
+  const offsetOptions: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }
+
+  clockFormatters = {
+    madridTime: new Intl.DateTimeFormat('es-PE', {
+      timeZone: 'Europe/Madrid',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }),
+    madridDate: new Intl.DateTimeFormat('es-PE', {
+      timeZone: 'Europe/Madrid',
+      day: '2-digit',
+      month: 'short',
+    }),
+    limaTime: new Intl.DateTimeFormat('es-PE', {
+      timeZone: 'America/Lima',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }),
+    madridZone: new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Madrid',
+      hour: '2-digit',
+      hour12: false,
+      timeZoneName: 'short',
+    }),
+    offsets: {
+      'America/Lima': new Intl.DateTimeFormat('en-CA', {
+        ...offsetOptions,
+        timeZone: 'America/Lima',
+      }),
+      'Europe/Madrid': new Intl.DateTimeFormat('en-CA', {
+        ...offsetOptions,
+        timeZone: 'Europe/Madrid',
+      }),
+    },
+  }
+
+  return clockFormatters
 }
 
 function removeFloatingClock() {
@@ -100,17 +164,13 @@ function physicalToLayout(x: number, y: number): FloatingClockPosition {
   }
 }
 
-function getTimeZoneOffset(now: Date, timeZone: string) {
-  const values = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(now).map((part) => [part.type, part.value]))
+function getTimeZoneOffset(
+  now: Date,
+  formatter: Intl.DateTimeFormat
+) {
+  const values = Object.fromEntries(
+    formatter.formatToParts(now).map((part) => [part.type, part.value])
+  )
   const zonedAsUtc = Date.UTC(
     Number(values.year),
     Number(values.month) - 1,
@@ -148,21 +208,21 @@ async function showFloatingClock() {
   shadow.innerHTML = `
     <style>
       :host{color-scheme:dark}*{box-sizing:border-box}
-      .clock{position:relative;width:${CLOCK_WIDTH}px;height:${CLOCK_HEIGHT}px;border:1px solid rgba(148,163,184,.22);border-radius:11px;background:linear-gradient(135deg,#080e20 0%,#0f172a 60%,#162035 100%);box-shadow:0 5px 15px rgba(2,6,23,.55),inset 0 1px 0 rgba(255,255,255,.06);color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:grab;user-select:none}.clock:active{cursor:grabbing}
-      .clock-grid{display:grid;grid-template-columns:minmax(0,1fr) 64px 13px;column-gap:4px;align-items:stretch;height:100%;padding:5px}
-      .madrid-block,.lima-block{display:grid;grid-template-rows:9px minmax(0,1fr) 9px;align-items:center;min-width:0}
-      .city-line{display:flex;align-items:center;gap:3px;min-width:0;color:#94a3b8;font-size:7.5px;font-weight:800;letter-spacing:.04em;line-height:1;text-transform:uppercase;white-space:nowrap}
-      .live{width:5px;height:5px;border-radius:50%;background:#34d399;box-shadow:0 0 5px #34d399;flex-shrink:0}
-      .flag{font-size:9px;letter-spacing:0}
-      .madrid-time{font:800 19px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.04em}
-      .zone-pill{border-radius:4px;background:rgba(37,71,107,.7);padding:1px 3px;color:#bae6fd;font-size:7px;font-weight:800;letter-spacing:.01em}
-      .date-str{min-width:0;overflow:hidden;color:#64748b;font-size:8px;font-weight:500;line-height:1;white-space:nowrap;text-overflow:ellipsis}
-      .lima-block{border-left:1px solid rgba(148,163,184,.15);padding-left:6px}
-      .lima-time{font:750 14px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.03em;color:#e2e8f0}
-      .difference{color:#a5b4fc;font-size:8px;font-weight:750;line-height:1;white-space:nowrap}
+      .clock{position:relative;width:${CLOCK_WIDTH}px;height:${CLOCK_HEIGHT}px;border:1px solid rgba(148,163,184,.22);border-radius:9px;background:linear-gradient(135deg,#080e20 0%,#0f172a 60%,#162035 100%);box-shadow:0 4px 12px rgba(2,6,23,.55),inset 0 1px 0 rgba(255,255,255,.06);color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:grab;user-select:none}.clock:active{cursor:grabbing}
+      .clock-grid{display:grid;grid-template-columns:minmax(0,1fr) 50px 11px;column-gap:2px;align-items:stretch;height:100%;padding:4px}
+      .madrid-block,.lima-block{display:grid;grid-template-rows:7px minmax(0,1fr) 7px;align-items:center;min-width:0}
+      .city-line{display:flex;align-items:center;gap:2px;min-width:0;color:#94a3b8;font-size:6.5px;font-weight:800;letter-spacing:.03em;line-height:1;text-transform:uppercase;white-space:nowrap}
+      .live{width:4px;height:4px;border-radius:50%;background:#34d399;box-shadow:0 0 4px #34d399;flex-shrink:0}
+      .flag{font-size:8px;letter-spacing:0}
+      .madrid-time{font:800 17px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.055em}
+      .zone-pill{border-radius:3px;background:rgba(37,71,107,.7);padding:0 2px;color:#bae6fd;font-size:6px;font-weight:800;letter-spacing:0}
+      .date-str{min-width:0;overflow:hidden;color:#64748b;font-size:7px;font-weight:600;line-height:1;white-space:nowrap;text-overflow:ellipsis}
+      .lima-block{border-left:1px solid rgba(148,163,184,.15);padding-left:4px}
+      .lima-time{font:750 12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:-.04em;color:#e2e8f0}
+      .difference{color:#a5b4fc;font-size:7px;font-weight:750;line-height:1;white-space:nowrap}
       .menu-wrap{position:relative;display:flex;align-items:flex-start;justify-content:flex-end}
-      .menu-btn{border:0;border-radius:5px;background:transparent;padding:1px 2px;color:#64748b;font:700 14px/1 system-ui;cursor:pointer;flex-shrink:0}.menu-btn:hover{background:rgba(255,255,255,.08);color:#fff}
-      .menu{position:absolute;right:-2px;top:20px;display:none;min-width:90px;border:1px solid rgba(148,163,184,.22);border-radius:8px;background:#0f172a;padding:4px;box-shadow:0 8px 20px rgba(2,6,23,.5);z-index:2}.menu.open{display:block}
+      .menu-btn{border:0;border-radius:4px;background:transparent;padding:0 1px;color:#64748b;font:700 12px/1 system-ui;cursor:pointer;flex-shrink:0}.menu-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+      .menu{position:absolute;right:-2px;top:16px;display:none;min-width:90px;border:1px solid rgba(148,163,184,.22);border-radius:8px;background:#0f172a;padding:4px;box-shadow:0 8px 20px rgba(2,6,23,.5);z-index:2}.menu.open{display:block}
       .close-btn{width:100%;border:0;border-radius:5px;background:transparent;padding:5px 8px;color:#fca5a5;font:600 9.5px system-ui;text-align:left;cursor:pointer}.close-btn:hover{background:rgba(239,68,68,.12)}
     </style>
     <section class="clock" aria-label="Reloj de España y Perú">
@@ -200,16 +260,17 @@ async function showFloatingClock() {
   }
   applyLayout(currentLayout)
   host.style.visibility = 'visible'
+  const formatters = getClockFormatters()
 
   const update = () => {
     const now = new Date()
-    time.textContent = new Intl.DateTimeFormat('es-PE', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now)
-    const formattedDate = new Intl.DateTimeFormat('es-PE', { timeZone: 'Europe/Madrid', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(now).replace(/\./g, '')
+    time.textContent = formatters.madridTime.format(now)
+    const formattedDate = formatters.madridDate.format(now).replace(/\./g, '')
     date.textContent = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)
-    lima.textContent = new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false }).format(now)
-    const madridParts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', hour: '2-digit', hour12: false, timeZoneName: 'short' }).formatToParts(now)
+    lima.textContent = formatters.limaTime.format(now)
+    const madridParts = formatters.madridZone.formatToParts(now)
     zone.textContent = madridParts.find((part) => part.type === 'timeZoneName')?.value || 'Madrid'
-    const limaDifference = getTimeZoneOffset(now, 'America/Lima') - getTimeZoneOffset(now, 'Europe/Madrid')
+    const limaDifference = getTimeZoneOffset(now, formatters.offsets['America/Lima']) - getTimeZoneOffset(now, formatters.offsets['Europe/Madrid'])
     const differenceSign = limaDifference > 0 ? '+' : limaDifference < 0 ? '−' : ''
     difference.textContent = `${differenceSign}${Math.abs(limaDifference)} h`
   }

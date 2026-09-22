@@ -15,6 +15,54 @@ export interface RenewalScheduleItem {
   dueNotifiedFor?: string
 }
 
+export interface VaultSnapshot {
+  hasMasterPassword: boolean
+  masterPasswordHash?: string
+  masterSalt?: string
+  vault?: EncryptedVault
+  draft?: EncryptedVault
+  renewalSchedule: RenewalScheduleItem[]
+}
+
+export interface LoadedVaultData {
+  entries: PasswordEntry[]
+  draft: PasswordDraft | null
+}
+
+interface DecryptedDraft {
+  value: PasswordDraft | null
+  shouldClear: boolean
+}
+
+function isEncryptedVault(value: unknown): value is EncryptedVault {
+  if (!value || typeof value !== 'object') return false
+  const vault = value as Partial<EncryptedVault>
+  return typeof vault.salt === 'string' && typeof vault.iv === 'string' && typeof vault.data === 'string'
+}
+
+function readRenewalSchedule(value: unknown): RenewalScheduleItem[] {
+  return Array.isArray(value) ? value as RenewalScheduleItem[] : []
+}
+
+export async function readVaultSnapshot(): Promise<VaultSnapshot> {
+  const result = await chrome.storage.local.get([
+    HASH_KEY,
+    SALT_KEY,
+    VAULT_KEY,
+    DRAFT_KEY,
+    RENEWAL_SCHEDULE_KEY,
+  ])
+
+  return {
+    hasMasterPassword: HASH_KEY in result,
+    masterPasswordHash: typeof result[HASH_KEY] === 'string' ? result[HASH_KEY] : undefined,
+    masterSalt: typeof result[SALT_KEY] === 'string' ? result[SALT_KEY] : undefined,
+    vault: isEncryptedVault(result[VAULT_KEY]) ? result[VAULT_KEY] : undefined,
+    draft: isEncryptedVault(result[DRAFT_KEY]) ? result[DRAFT_KEY] : undefined,
+    renewalSchedule: readRenewalSchedule(result[RENEWAL_SCHEDULE_KEY]),
+  }
+}
+
 export async function isMasterPasswordSet(): Promise<boolean> {
   const result = await chrome.storage.local.get(HASH_KEY)
   return HASH_KEY in result
@@ -37,18 +85,79 @@ export async function setMasterPassword(password: string): Promise<void> {
   })
 }
 
+export async function verifyOrSetMasterPassword(
+  password: string,
+  snapshot: VaultSnapshot
+): Promise<boolean> {
+  if (!snapshot.hasMasterPassword) {
+    await setMasterPassword(password)
+    return true
+  }
+
+  if (!snapshot.masterPasswordHash || !snapshot.masterSalt) return false
+  const hash = await hashPassword(password + snapshot.masterSalt)
+  return hash === snapshot.masterPasswordHash
+}
+
+async function decryptEntries(
+  vault: EncryptedVault | undefined,
+  masterPassword: string
+): Promise<PasswordEntry[]> {
+  if (!vault) return []
+
+  try {
+    return JSON.parse(await decryptVault(vault, masterPassword)) as PasswordEntry[]
+  } catch {
+    throw new Error('Failed to decrypt vault. Incorrect master password.')
+  }
+}
+
+async function decryptDraftValue(
+  draft: EncryptedVault | undefined,
+  masterPassword: string
+): Promise<DecryptedDraft> {
+  if (!draft) return { value: null, shouldClear: false }
+
+  try {
+    return {
+      value: JSON.parse(await decryptVault(draft, masterPassword)) as PasswordDraft,
+      shouldClear: false,
+    }
+  } catch {
+    return { value: null, shouldClear: true }
+  }
+}
+
+async function decryptDraft(
+  draft: EncryptedVault | undefined,
+  masterPassword: string
+): Promise<PasswordDraft | null> {
+  const result = await decryptDraftValue(draft, masterPassword)
+  if (result.shouldClear) await chrome.storage.local.remove(DRAFT_KEY)
+  return result.value
+}
+
+export async function loadVaultSnapshot(
+  snapshot: VaultSnapshot,
+  masterPassword: string
+): Promise<LoadedVaultData> {
+  const [entries, decryptedDraft] = await Promise.all([
+    decryptEntries(snapshot.vault, masterPassword),
+    decryptDraftValue(snapshot.draft, masterPassword),
+  ])
+  if (decryptedDraft.shouldClear) await chrome.storage.local.remove(DRAFT_KEY)
+  await syncRenewalSchedule(entries, snapshot.renewalSchedule)
+  return { entries, draft: decryptedDraft.value }
+}
+
 export async function loadVault(
   masterPassword: string
 ): Promise<PasswordEntry[]> {
   const result = await chrome.storage.local.get(VAULT_KEY)
-  if (!(VAULT_KEY in result)) return []
-
-  try {
-    const decrypted = await decryptVault(result[VAULT_KEY], masterPassword)
-    return JSON.parse(decrypted) as PasswordEntry[]
-  } catch {
-    throw new Error('Failed to decrypt vault. Incorrect master password.')
-  }
+  return decryptEntries(
+    isEncryptedVault(result[VAULT_KEY]) ? result[VAULT_KEY] : undefined,
+    masterPassword
+  )
 }
 
 export async function saveVault(
@@ -62,14 +171,10 @@ export async function saveVault(
 
 export async function loadDraft(masterPassword: string): Promise<PasswordDraft | null> {
   const result = await chrome.storage.local.get(DRAFT_KEY)
-  if (!(DRAFT_KEY in result)) return null
-
-  try {
-    return JSON.parse(await decryptVault(result[DRAFT_KEY], masterPassword)) as PasswordDraft
-  } catch {
-    await chrome.storage.local.remove(DRAFT_KEY)
-    return null
-  }
+  return decryptDraft(
+    isEncryptedVault(result[DRAFT_KEY]) ? result[DRAFT_KEY] : undefined,
+    masterPassword
+  )
 }
 
 export async function saveDraft(draft: PasswordDraft, masterPassword: string) {
@@ -81,11 +186,23 @@ export async function clearDraft() {
   await chrome.storage.local.remove(DRAFT_KEY)
 }
 
-export async function syncRenewalSchedule(entries: PasswordEntry[]) {
-  const result = await chrome.storage.local.get(RENEWAL_SCHEDULE_KEY)
-  const current = Array.isArray(result[RENEWAL_SCHEDULE_KEY])
-    ? result[RENEWAL_SCHEDULE_KEY] as RenewalScheduleItem[]
-    : []
+function schedulesMatch(current: RenewalScheduleItem[], next: RenewalScheduleItem[]) {
+  return current.length === next.length && current.every((item, index) => {
+    const candidate = next[index]
+    return item.entryId === candidate.entryId &&
+      item.dueOn === candidate.dueOn &&
+      item.advanceNotifiedFor === candidate.advanceNotifiedFor &&
+      item.dueNotifiedFor === candidate.dueNotifiedFor
+  })
+}
+
+export async function syncRenewalSchedule(
+  entries: PasswordEntry[],
+  currentSchedule?: RenewalScheduleItem[]
+) {
+  const current = currentSchedule ?? readRenewalSchedule(
+    (await chrome.storage.local.get(RENEWAL_SCHEDULE_KEY))[RENEWAL_SCHEDULE_KEY]
+  )
 
   const schedule = entries.flatMap((entry) => {
     if (!entry.passwordChangedOn) return []
@@ -102,7 +219,16 @@ export async function syncRenewalSchedule(entries: PasswordEntry[]) {
     }]
   })
 
-  await chrome.storage.local.set({ [RENEWAL_SCHEDULE_KEY]: schedule })
+  if (!schedulesMatch(current, schedule)) {
+    await chrome.storage.local.set({ [RENEWAL_SCHEDULE_KEY]: schedule })
+  }
+}
+
+export async function persistVault(entries: PasswordEntry[], masterPassword: string) {
+  await Promise.all([
+    saveVault(entries, masterPassword),
+    syncRenewalSchedule(entries),
+  ])
 }
 
 export async function addEntry(
@@ -111,8 +237,7 @@ export async function addEntry(
 ): Promise<void> {
   const entries = await loadVault(masterPassword)
   entries.push(entry)
-  await saveVault(entries, masterPassword)
-  await syncRenewalSchedule(entries)
+  await persistVault(entries, masterPassword)
 }
 
 export async function updateEntry(
@@ -125,8 +250,7 @@ export async function updateEntry(
   if (index === -1) throw new Error('Entry not found')
 
   entries[index] = { ...entries[index], ...updates, updatedAt: Date.now() }
-  await saveVault(entries, masterPassword)
-  await syncRenewalSchedule(entries)
+  await persistVault(entries, masterPassword)
 }
 
 export async function deleteEntry(
@@ -135,6 +259,5 @@ export async function deleteEntry(
 ): Promise<void> {
   const entries = await loadVault(masterPassword)
   const filtered = entries.filter((e) => e.id !== id)
-  await saveVault(filtered, masterPassword)
-  await syncRenewalSchedule(filtered)
+  await persistVault(filtered, masterPassword)
 }
