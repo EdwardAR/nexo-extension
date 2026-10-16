@@ -17,10 +17,10 @@ function showNexoReminder(title: string, message: string) {
     'background:linear-gradient(135deg,#0f172a,#312e81 58%,#0e7490)',
     'box-shadow:0 20px 55px rgba(15,23,42,.4)',
     'color:#fff',
-    'font:14px/1.45 system-ui,-apple-system,sans-serif',
+    'font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif',
   ].join(';')
   const heading = document.createElement('strong')
-  heading.textContent = `🔔 ${title}`
+  heading.textContent = title
   heading.style.cssText = 'display:block;padding-right:28px;font-size:15px;margin-bottom:5px'
   const detail = document.createElement('div')
   detail.textContent = message

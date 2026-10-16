@@ -35,8 +35,8 @@ export function PasswordCard({ entry, onView, onCopy }: PasswordCardProps) {
           className="min-w-0 flex-1 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-vault-500"
           aria-label={`Ver acceso de ${domain}`}
         >
-          <p className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-vault-600 dark:text-slate-100 dark:group-hover:text-vault-300">{domain}</p>
-          <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{entry.username}</p>
+          <p className="type-section truncate text-slate-900 transition-colors group-hover:text-vault-600 dark:text-slate-100 dark:group-hover:text-vault-300">{domain}</p>
+          <p className="type-secondary mt-0.5 truncate text-slate-500 dark:text-slate-400">{entry.username}</p>
         </button>
 
         <div className="flex items-center gap-0.5 text-slate-400">

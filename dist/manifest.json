@@ -33,7 +33,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/autofill.ts-loader-D4YTp2kL.js"
+        "assets/autofill.ts-loader-DBOnnq7Y.js"
       ],
       "matches": [
         "<all_urls>"
@@ -58,7 +58,7 @@
       ],
       "resources": [
         "assets/floating-clock-hcteuHpy.js",
-        "assets/autofill.ts-BtWgE_1C.js"
+        "assets/autofill.ts-cJBhE6di.js"
       ],
       "use_dynamic_url": false
     }

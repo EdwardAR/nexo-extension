@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   ShieldCheck, KeyRound, Zap, ChevronRight, ArrowRight,
-  LockKeyhole, AlertTriangle, MousePointerClick, Orbit, Clock3,
+  LockKeyhole, AlertTriangle, MousePointerClick, Orbit, Clock,
 } from 'lucide-react'
 
 interface OnboardingSlidesProps {
@@ -78,7 +78,7 @@ const slides: Slide[] = [
     description:
       'Consulta horarios de Perú y España, programa recordatorios, controla renovaciones y crea automatizaciones desde un mismo centro.',
     tip: 'Elige el país al programar una alerta: Nexo convierte la hora y respeta automáticamente el horario de verano.',
-    tipIcon: Clock3,
+    tipIcon: Clock,
     tipColor: 'text-cyan-800 dark:text-cyan-200',
     tipBg: 'bg-cyan-50 dark:bg-cyan-950/30',
     tipBorder: 'border-cyan-200 dark:border-cyan-900',
@@ -136,7 +136,7 @@ export function OnboardingSlides({ onFinish }: OnboardingSlidesProps) {
         {!isLast && (
           <button
             onClick={onFinish}
-            className="text-xs font-medium text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+            className="type-secondary font-medium text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
           >
             Omitir
           </button>
@@ -160,24 +160,24 @@ export function OnboardingSlides({ onFinish }: OnboardingSlidesProps) {
         </div>
 
         {/* Número de slide */}
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-vault-500 dark:text-vault-400">
+        <p className="type-label mb-2 text-vault-500 dark:text-vault-400">
           {current + 1} / {slides.length}
         </p>
 
         {/* Título */}
-        <h2 className="mb-3 text-center text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="type-title mb-3 text-center text-slate-900 dark:text-white">
           {slide.title}
         </h2>
 
         {/* Descripción */}
-        <p className="mb-6 max-w-[280px] text-center text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+        <p className="type-body mb-6 max-w-[280px] text-center text-slate-500 dark:text-slate-400">
           {slide.description}
         </p>
 
         {/* Tip */}
         <div className={`flex w-full max-w-[300px] items-start gap-2.5 rounded-xl border ${slide.tipBorder} ${slide.tipBg} p-3`}>
           <TipIcon className={`mt-0.5 h-4 w-4 flex-none ${slide.tipColor}`} />
-          <p className={`text-xs leading-relaxed ${slide.tipColor}`}>
+          <p className={`type-secondary ${slide.tipColor}`}>
             {slide.tip}
           </p>
         </div>

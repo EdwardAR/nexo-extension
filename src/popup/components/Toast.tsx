@@ -14,9 +14,9 @@ function ToastItem({
   onRemove: (id: string) => void
 }) {
   const icons = {
-    success: <CheckCircle className="w-4 h-4 text-green-500" />,
-    error: <XCircle className="w-4 h-4 text-red-500" />,
-    info: <Info className="w-4 h-4 text-vault-500" />,
+    success: <CheckCircle className="icon-status text-green-500" />,
+    error: <XCircle className="icon-status text-red-500" />,
+    info: <Info className="icon-status text-vault-500" />,
   }
 
   const borders = {
@@ -32,11 +32,11 @@ function ToastItem({
       role="status"
     >
       {icons[toast.type]}
-      <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
+      <span className="type-body flex-1 text-gray-700 dark:text-gray-300">
         {toast.message}
       </span>
       <button aria-label="Cerrar notificación" onClick={() => onRemove(toast.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-        <X className="w-3.5 h-3.5" />
+        <X className="icon-status" />
       </button>
     </div>
   )

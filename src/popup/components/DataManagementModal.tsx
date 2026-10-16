@@ -68,8 +68,8 @@ export function DataManagementModal({
               <DatabaseBackup className="h-5 w-5" />
             </span>
             <div>
-              <h2 id="data-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">Importar y exportar</h2>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Crea o restaura un respaldo cifrado.</p>
+              <h2 id="data-title" className="type-section text-slate-900 dark:text-slate-100">Importar y exportar</h2>
+              <p className="type-secondary mt-0.5 text-slate-500 dark:text-slate-400">Crea o restaura un respaldo cifrado.</p>
             </div>
           </div>
           <IconButton label="Cerrar" onClick={onClose}><X className="h-4 w-4" /></IconButton>
@@ -77,11 +77,11 @@ export function DataManagementModal({
 
         {confirmImport ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
-            <p className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <p className="type-body flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-300">
               <AlertTriangle className="h-4 w-4" /> ¿Restaurar este respaldo?
             </p>
-            <p className="mt-2 break-all text-xs font-medium text-amber-700 dark:text-amber-400">{fileName}</p>
-            <p className="mt-2 text-xs leading-relaxed text-amber-700/80 dark:text-amber-400">
+            <p className="type-secondary mt-2 break-all font-medium text-amber-700 dark:text-amber-400">{fileName}</p>
+            <p className="type-secondary mt-2 text-amber-700/80 dark:text-amber-400">
               La bóveda actual será reemplazada. Necesitarás la contraseña maestra con la que se creó el respaldo.
             </p>
             <div className="mt-4 flex gap-2">
@@ -102,8 +102,8 @@ export function DataManagementModal({
                 <Download className="h-5 w-5" />
               </span>
               <span className="flex-1">
-                <strong className="block text-sm text-slate-900 dark:text-slate-100">Exportar respaldo</strong>
-                <small className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Descarga todas tus credenciales cifradas.</small>
+                <strong className="type-section block text-slate-900 dark:text-slate-100">Exportar respaldo</strong>
+                <small className="type-secondary mt-1 block text-slate-500 dark:text-slate-400">Descarga todas tus credenciales cifradas.</small>
               </span>
               <FileJson className="h-4 w-4 text-slate-400" />
             </button>
@@ -117,8 +117,8 @@ export function DataManagementModal({
                 <Upload className="h-5 w-5" />
               </span>
               <span className="flex-1">
-                <strong className="block text-sm text-slate-900 dark:text-slate-100">Importar respaldo</strong>
-                <small className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Restaura un archivo compatible de Nexo o PassSave.</small>
+                <strong className="type-section block text-slate-900 dark:text-slate-100">Importar respaldo</strong>
+                <small className="type-secondary mt-1 block text-slate-500 dark:text-slate-400">Restaura un archivo compatible de Nexo o PassSave.</small>
               </span>
               <FileJson className="h-4 w-4 text-slate-400" />
             </button>
@@ -127,7 +127,7 @@ export function DataManagementModal({
           </div>
         )}
 
-        <p className="mt-4 text-center text-[11px] leading-relaxed text-slate-400">
+        <p className="type-secondary mt-4 text-center text-slate-400">
           El respaldo no contiene contraseñas en texto plano.
         </p>
       </div>

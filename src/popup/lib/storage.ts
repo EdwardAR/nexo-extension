@@ -7,6 +7,7 @@ export const HASH_KEY = 'master_password_hash'
 export const SALT_KEY = 'master_salt'
 export const DRAFT_KEY = 'password_entry_draft'
 export const RENEWAL_SCHEDULE_KEY = 'renewal_schedule'
+export const PROFILE_NAME_KEY = 'profile_name'
 
 export interface RenewalScheduleItem {
   entryId: string
@@ -27,6 +28,25 @@ export interface VaultSnapshot {
 export interface LoadedVaultData {
   entries: PasswordEntry[]
   draft: PasswordDraft | null
+}
+
+export function normalizeProfileName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').slice(0, 80)
+}
+
+export async function getProfileName(): Promise<string> {
+  const result = await chrome.storage.local.get(PROFILE_NAME_KEY)
+  return typeof result[PROFILE_NAME_KEY] === 'string'
+    ? normalizeProfileName(result[PROFILE_NAME_KEY])
+    : ''
+}
+
+export async function saveProfileName(name: string): Promise<string> {
+  const normalizedName = normalizeProfileName(name)
+  if (!normalizedName) throw new Error('El nombre de usuario es obligatorio')
+
+  await chrome.storage.local.set({ [PROFILE_NAME_KEY]: normalizedName })
+  return normalizedName
 }
 
 interface DecryptedDraft {

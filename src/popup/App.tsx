@@ -7,6 +7,7 @@ import { LockScreen } from './components/LockScreen'
 import { ToastContainer } from './components/Toast'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useOnboarding } from './hooks/useOnboarding'
+import { useProfile } from './hooks/useProfile'
 
 const Dashboard = lazy(() => import('./components/Dashboard').then(({ Dashboard }) => ({ default: Dashboard })))
 const AddPasswordModal = lazy(() => import('./components/AddPasswordModal').then(({ AddPasswordModal }) => ({ default: AddPasswordModal })))
@@ -16,10 +17,11 @@ const RenewalPanel = lazy(() => import('./components/RenewalPanel').then(({ Rene
 const OnboardingSlides = lazy(() => import('./components/OnboardingSlides').then(({ OnboardingSlides }) => ({ default: OnboardingSlides })))
 const TimePanel = lazy(() => import('./components/TimePanel').then(({ TimePanel }) => ({ default: TimePanel })))
 const PasswordsPanel = lazy(() => import('./components/PasswordsPanel').then(({ PasswordsPanel }) => ({ default: PasswordsPanel })))
+const ProfileModal = lazy(() => import('./components/ProfileModal').then(({ ProfileModal }) => ({ default: ProfileModal })))
 
 function LoadingScreen() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 text-sm font-medium text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+    <main className="type-body flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 font-medium text-slate-500 dark:bg-slate-950 dark:text-slate-400">
       <span className="h-6 w-6 animate-spin rounded-full border-2 border-vault-500 border-t-transparent" aria-hidden="true" />
       <span role="status">Abriendo Nexo…</span>
     </main>
@@ -47,6 +49,7 @@ export default function App() {
     unlocked, entries, draft, loading, unlock, lock,
     addEntry, updateEntry, deleteEntry, saveDraft, discardDraft,
   } = useVault()
+  const { profileName, updateProfileName } = useProfile()
   const { dark, toggle } = useTheme()
   const { toasts, addToast, removeToast } = useToast()
   const { showOnboarding, completeOnboarding } = useOnboarding()
@@ -56,6 +59,7 @@ export default function App() {
   const [showRenewalPanel, setShowRenewalPanel] = useState(false)
   const [showTimePanel, setShowTimePanel] = useState(false)
   const [showPasswordsPanel, setShowPasswordsPanel] = useState(false)
+  const [showProfileModal, setShowProfileModal] = useState(false)
   const [addInitialSite, setAddInitialSite] = useState('')
   const [viewingEntry, setViewingEntry] = useState<PasswordEntry | null>(null)
   const draftOpenedRef = useRef(false)
@@ -69,15 +73,31 @@ export default function App() {
   }, [unlocked, draft])
 
   const handleUnlock = useCallback(
-    async (password: string) => {
+    async (password: string, username: string) => {
       const success = await unlock(password)
       if (success) {
+        try {
+          await updateProfileName(username)
+        } catch {
+          addToast('No se pudo guardar el nombre de usuario', 'error')
+        }
         addToast('Bóveda desbloqueada', 'success')
       }
       return success
     },
-    [unlock, addToast]
+    [unlock, updateProfileName, addToast]
   )
+
+  const handleProfileSave = useCallback(async (name: string) => {
+    try {
+      await updateProfileName(name)
+      addToast('Nombre de usuario actualizado', 'success')
+      return true
+    } catch {
+      addToast('No se pudo guardar el nombre de usuario', 'error')
+      return false
+    }
+  }, [updateProfileName, addToast])
 
   const handleLock = useCallback(async () => {
     await lock()
@@ -225,7 +245,7 @@ export default function App() {
         <div className="absolute top-3 right-3">
           <ThemeToggle dark={dark} onToggle={toggle} />
         </div>
-        <LockScreen onUnlock={handleUnlock} loading={loading} />
+        <LockScreen onUnlock={handleUnlock} loading={loading} savedUsername={profileName} />
         <ToastContainer toasts={toasts} onRemove={removeToast} />
       </>
     )
@@ -298,6 +318,8 @@ export default function App() {
           onOpenRenewals={() => setShowRenewalPanel(true)}
           onOpenTime={() => setShowTimePanel(true)}
           onOpenPasswords={() => setShowPasswordsPanel(true)}
+          profileName={profileName}
+          onOpenProfile={() => setShowProfileModal(true)}
           dark={dark}
           onToggleTheme={toggle}
         />
@@ -324,6 +346,16 @@ export default function App() {
             onUpdate={handleUpdate}
             onDelete={handleDelete}
             onCopy={handleCopy}
+          />
+        )}
+      </Suspense>
+
+      <Suspense fallback={null}>
+        {showProfileModal && (
+          <ProfileModal
+            name={profileName}
+            onClose={() => setShowProfileModal(false)}
+            onSave={handleProfileSave}
           />
         )}
       </Suspense>

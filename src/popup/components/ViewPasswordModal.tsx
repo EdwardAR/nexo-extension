@@ -90,8 +90,8 @@ export function ViewPasswordModal({
       >
         <div className="mb-5 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-vault-600 dark:text-vault-300">DETALLE DEL ACCESO</p>
-            <h2 id="detail-title" className="mt-1 truncate text-lg font-bold text-slate-900 dark:text-slate-100">{domain}</h2>
+            <p className="type-label text-vault-600 dark:text-vault-300">Detalle del acceso</p>
+            <h2 id="detail-title" className="type-section mt-1 truncate text-slate-900 dark:text-slate-100">{domain}</h2>
           </div>
           <div className="flex items-center gap-1">
             <IconButton
@@ -117,7 +117,7 @@ export function ViewPasswordModal({
                 className="input-field"
               />
             ) : (
-              <p className="truncate text-sm text-slate-800 dark:text-slate-200">{entry.site}</p>
+              <p className="type-body truncate text-slate-800 dark:text-slate-200">{entry.site}</p>
             )}
           </div>
 
@@ -127,7 +127,7 @@ export function ViewPasswordModal({
               <input value={username} onChange={(event) => setUsername(event.target.value)} className="input-field" />
             ) : (
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm text-slate-800 dark:text-slate-200">{entry.username}</p>
+                <p className="type-body truncate text-slate-800 dark:text-slate-200">{entry.username}</p>
                 <IconButton label="Copiar usuario" onClick={() => onCopy(entry.username, 'Usuario')}>
                   <Copy className="h-3.5 w-3.5" />
                 </IconButton>
@@ -146,7 +146,7 @@ export function ViewPasswordModal({
               />
             ) : (
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate font-mono text-sm tracking-wider text-slate-800 dark:text-slate-200">
+                <p className="type-body truncate tracking-wider text-slate-800 dark:text-slate-200">
                   {showPassword ? entry.password : '••••••••••••'}
                 </p>
                 <div className="flex items-center">
@@ -169,7 +169,7 @@ export function ViewPasswordModal({
             {editing ? (
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="input-field resize-none" rows={2} />
             ) : (
-              <p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-400">{entry.notes || 'Sin notas'}</p>
+              <p className="type-body whitespace-pre-wrap text-slate-600 dark:text-slate-400">{entry.notes || 'Sin notas'}</p>
             )}
           </div>
 
@@ -198,9 +198,9 @@ export function ViewPasswordModal({
                 </label>
               </div>
             ) : renewal.status === 'unconfigured' ? (
-              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Configurar fecha del último cambio</p>
+              <p className="type-body font-medium text-amber-600 dark:text-amber-400">Configurar fecha del último cambio</p>
             ) : (
-              <div className="flex items-center justify-between gap-2 text-sm">
+              <div className="type-body flex items-center justify-between gap-2">
                 <span className="text-slate-700 dark:text-slate-300">Cada {entry.renewalIntervalMonths || DEFAULT_RENEWAL_MONTHS} meses</span>
                 <span className={renewal.status === 'overdue' ? 'font-semibold text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}>
                   {new Date(`${renewal.dueOn}T00:00:00`).toLocaleDateString('es-PE')}
@@ -209,7 +209,7 @@ export function ViewPasswordModal({
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 pt-1 text-xs text-slate-400 dark:text-slate-500">
+          <div className="type-secondary flex items-center gap-1.5 pt-1 text-slate-400 dark:text-slate-500">
             <Clock className="h-3 w-3" />
             <span>Creado el {new Date(entry.createdAt).toLocaleDateString('es-PE')}</span>
           </div>
@@ -217,8 +217,8 @@ export function ViewPasswordModal({
 
         {editing && confirmRenewal ? (
           <div className="mt-5 rounded-xl border border-vault-200 bg-vault-50 p-3 dark:border-vault-800 dark:bg-vault-950/30">
-            <p className="text-sm font-semibold text-vault-800 dark:text-vault-200">¿La contraseña fue renovada?</p>
-            <p className="mt-1 text-xs text-vault-700/80 dark:text-vault-300">Esto define desde cuándo se calculará el próximo vencimiento.</p>
+            <p className="type-body font-semibold text-vault-800 dark:text-vault-200">¿La contraseña fue renovada?</p>
+            <p className="type-secondary mt-1 text-vault-700/80 dark:text-vault-300">Esto define desde cuándo se calculará el próximo vencimiento.</p>
             <div className="mt-3 flex gap-2">
               <button onClick={() => void saveChanges(passwordChangedOn)} disabled={busy} className="btn-ghost flex-1">No, solo corregí</button>
               <button onClick={() => void saveChanges(toLocalDateString())} disabled={busy} className="btn-primary flex-1">Sí, se renovó</button>
@@ -239,10 +239,10 @@ export function ViewPasswordModal({
           <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-700">
             {confirmDelete ? (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/30">
-                <p className="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                <p className="type-body flex items-center gap-2 font-semibold text-red-700 dark:text-red-300">
                   <AlertTriangle className="h-4 w-4" /> ¿Eliminar este acceso?
                 </p>
-                <p className="mt-1 text-xs text-red-600/80 dark:text-red-400">Esta acción no se puede deshacer.</p>
+                <p className="type-secondary mt-1 text-red-600/80 dark:text-red-400">Esta acción no se puede deshacer.</p>
                 <div className="mt-3 flex gap-2">
                   <button onClick={() => setConfirmDelete(false)} className="btn-ghost flex-1">Cancelar</button>
                   <button onClick={handleDelete} disabled={busy} className="btn-danger flex-1">

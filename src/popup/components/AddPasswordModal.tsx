@@ -121,10 +121,10 @@ export function AddPasswordModal({
       >
         <div className="mb-5 flex items-start justify-between">
           <div>
-            <h2 id="add-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
+            <h2 id="add-title" className="type-section text-slate-900 dark:text-slate-100">
               {initialDraft ? 'Continuar borrador' : 'Nuevo acceso'}
             </h2>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="type-secondary mt-1 text-slate-500 dark:text-slate-400">
               {initialDraft ? 'Recuperamos la información cifrada.' : 'Se cifrará antes de guardarse.'}
             </p>
           </div>
@@ -196,10 +196,10 @@ export function AddPasswordModal({
 
           {confirmDiscard ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
-              <p className="flex items-center gap-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+              <p className="type-body flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-300">
                 <AlertTriangle className="h-4 w-4" /> ¿Descartar el borrador?
               </p>
-              <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">La información escrita se eliminará.</p>
+              <p className="type-secondary mt-1 text-amber-700 dark:text-amber-400">La información escrita se eliminará.</p>
               <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => setConfirmDiscard(false)} className="btn-ghost flex-1">Continuar editando</button>
                 <button type="button" onClick={discard} className="btn-danger flex-1">Descartar</button>

@@ -32,15 +32,15 @@ export function PasswordsPanel({ entries, onClose, onAdd, onView, onCopy }: Pass
           <IconButton label="Volver" onClick={onClose} tone="inverse"><ArrowLeft className="h-4 w-4" /></IconButton>
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15"><KeyRound className="h-5 w-5" /></span>
           <div>
-            <h1 className="text-base font-bold">Contraseñas</h1>
-            <p className="text-xs text-cyan-100/80">{entries.length} {entries.length === 1 ? 'acceso seguro' : 'accesos seguros'}</p>
+            <h1 className="type-brand">Contraseñas</h1>
+            <p className="type-secondary text-cyan-100/80">{entries.length} {entries.length === 1 ? 'acceso seguro' : 'accesos seguros'}</p>
           </div>
         </div>
       </header>
 
       <div className="relative -mt-4 px-4 pb-3">
         <div className="group relative rounded-2xl bg-white shadow-lg shadow-slate-300/25 dark:bg-slate-800 dark:shadow-none">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-vault-600" />
+          <Search className="icon-input absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-vault-600" />
           <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar sitio o usuario" aria-label="Buscar contraseñas" className="input-field border-transparent bg-transparent pl-10 pr-10 shadow-none hover:border-transparent dark:border-transparent dark:bg-transparent" autoFocus />
           {search && (
             <IconButton label="Limpiar búsqueda" onClick={() => setSearch('')} className="absolute right-1.5 top-1/2 -translate-y-1/2"><X className="h-4 w-4" /></IconButton>
@@ -50,15 +50,15 @@ export function PasswordsPanel({ entries, onClose, onAdd, onView, onCopy }: Pass
 
       <main className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="mb-2.5 flex items-center justify-between px-1">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">{search ? 'Resultados' : 'Tus accesos'}</h2>
-          <span className="rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{filtered.length}</span>
+          <h2 className="type-label text-slate-500 dark:text-slate-400">{search ? 'Resultados' : 'Tus accesos'}</h2>
+          <span className="type-secondary rounded-full bg-slate-200/70 px-2 py-0.5 font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">{filtered.length}</span>
         </div>
         {filtered.length === 0 ? (
           search ? (
             <div className="flex animate-fade-in flex-col items-center justify-center py-12">
               <div className="mb-3 rounded-full bg-slate-100 p-3 dark:bg-slate-800"><Search className="h-6 w-6 text-slate-400" /></div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Sin resultados</p>
-              <p className="mt-1 text-xs text-slate-500">No encontramos “{search}”</p>
+              <p className="type-body font-medium text-slate-700 dark:text-slate-300">Sin resultados</p>
+              <p className="type-secondary mt-1 text-slate-500">No encontramos “{search}”</p>
             </div>
           ) : <EmptyState onAdd={onAdd} />
         ) : (

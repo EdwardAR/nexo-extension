@@ -1,23 +1,37 @@
-import { useState, type FormEvent } from 'react'
-import { LockKeyhole, Eye, EyeOff, Orbit, Shield } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Eye, EyeOff, LockKeyhole, Orbit, ShieldCheck, Unlock, User } from 'lucide-react'
 import { IconButton } from './IconButton'
 
 interface LockScreenProps {
-  onUnlock: (password: string) => Promise<boolean>
+  onUnlock: (password: string, username: string) => Promise<boolean>
   loading: boolean
+  savedUsername: string
 }
 
-export function LockScreen({ onUnlock, loading }: LockScreenProps) {
+export function LockScreen({ onUnlock, loading, savedUsername }: LockScreenProps) {
+  const [username, setUsername] = useState(savedUsername)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    if (savedUsername && !username) setUsername(savedUsername)
+  }, [savedUsername, username])
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!password.trim()) return
+    const trimmedUsername = username.trim()
+    if (!trimmedUsername) {
+      setError('Ingresa tu nombre de usuario')
+      return
+    }
+    if (!password.trim()) {
+      setError('Ingresa tu contraseña maestra')
+      return
+    }
 
     setError('')
-    const success = await onUnlock(password)
+    const success = await onUnlock(password, trimmedUsername)
     if (!success) {
       setError('La contraseña maestra es incorrecta')
       setPassword('')
@@ -32,17 +46,39 @@ export function LockScreen({ onUnlock, loading }: LockScreenProps) {
         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-300 ring-2 ring-white/80" />
       </div>
 
-      <p className="relative text-xs font-bold uppercase tracking-[0.2em] text-vault-600 dark:text-vault-300">Tu centro digital</p>
-      <h1 className="relative mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Bienvenido a Nexo</h1>
-      <p className="relative mb-8 mt-2 max-w-xs text-center text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+      <p className="type-label relative text-vault-600 dark:text-vault-300">Tu centro digital</p>
+      <h1 className="type-title relative mt-2 text-slate-950 dark:text-white">Bienvenido a Nexo</h1>
+      <p className="type-body relative mb-8 mt-2 max-w-xs text-center text-slate-500 dark:text-slate-400">
         Un solo lugar para tus accesos, horarios y automatizaciones.
       </p>
 
-      <form onSubmit={handleSubmit} className="relative w-full max-w-xs space-y-4">
+      <form onSubmit={handleSubmit} className="relative w-full max-w-xs space-y-4" noValidate>
+        <label className="form-field">
+          <span>Nombre de usuario</span>
+          <User className="field-icon" aria-hidden="true" />
+          <input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value)
+              setError('')
+            }}
+            placeholder="Ingresa tu nombre"
+            className="input-field pl-10"
+            autoComplete="username"
+            aria-invalid={Boolean(error && !username.trim())}
+            aria-describedby={error ? 'unlock-error' : undefined}
+            required
+            autoFocus
+          />
+        </label>
+
         <label className="form-field">
           <span>Contraseña maestra</span>
-          <LockKeyhole className="field-icon" />
+          <LockKeyhole className="field-icon" aria-hidden="true" />
           <input
+            id="master-password"
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => {
@@ -51,8 +87,11 @@ export function LockScreen({ onUnlock, loading }: LockScreenProps) {
             }}
             placeholder="Ingresa tu contraseña"
             className="input-field pl-10 pr-11"
-            autoFocus
+            autoComplete="current-password"
             spellCheck={false}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'unlock-error' : undefined}
+            required
           />
           <IconButton
             label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
@@ -60,16 +99,16 @@ export function LockScreen({ onUnlock, loading }: LockScreenProps) {
             className="absolute bottom-1.5 right-1.5"
           >
             {showPassword ? (
-              <EyeOff className="w-4 h-4" />
+              <EyeOff className="icon-status" />
             ) : (
-              <Eye className="w-4 h-4" />
+              <Eye className="icon-status" />
             )}
           </IconButton>
         </label>
 
         {error && (
-          <div className="animate-shake rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/30" role="alert">
-            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+          <div id="unlock-error" className="animate-shake rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/30" role="alert">
+            <p className="type-body font-medium text-red-600 dark:text-red-400">
               {error}
             </p>
           </div>
@@ -77,20 +116,20 @@ export function LockScreen({ onUnlock, loading }: LockScreenProps) {
 
         <button
           type="submit"
-          disabled={loading || !password.trim()}
+          disabled={loading}
           className="btn-primary flex items-center justify-center gap-2 py-3 shadow-lg shadow-vault-600/25"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
-            <LockKeyhole className="w-5 h-5" />
+            <Unlock className="icon-action" />
           )}
           {loading ? 'Desbloqueando…' : 'Desbloquear bóveda'}
         </button>
       </form>
 
-      <div className="relative mt-8 flex max-w-xs items-start gap-2.5 rounded-xl border border-slate-200/80 bg-white/70 p-3 text-xs leading-relaxed text-slate-500 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
-        <Shield className="mt-0.5 h-4 w-4 flex-none text-vault-500" />
+      <div className="type-secondary relative mt-8 flex max-w-xs items-start gap-2.5 rounded-xl border border-slate-200/80 bg-white/70 p-3 text-slate-500 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
+        <ShieldCheck className="icon-status mt-0.5 flex-none text-emerald-600 dark:text-emerald-400" />
         Tu contraseña maestra no se almacena ni se transmite.
       </div>
     </main>

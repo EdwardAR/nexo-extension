@@ -13,8 +13,8 @@ export function EmptyState({ onAdd }: EmptyStateProps) {
           <ShieldCheck className="h-3.5 w-3.5" />
         </span>
       </div>
-      <h2 className="mb-2 text-lg font-bold text-slate-900 dark:text-slate-100">Tu bóveda está lista</h2>
-      <p className="mb-6 max-w-[260px] text-center text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+      <h2 className="type-title mb-2 text-slate-900 dark:text-slate-100">Tu bóveda está lista</h2>
+      <p className="type-body mb-6 max-w-[260px] text-center text-slate-500 dark:text-slate-400">
         Guarda tu primer acceso para tenerlo protegido y disponible cuando lo necesites.
       </p>
       <button onClick={onAdd} className="btn-primary !w-auto flex items-center gap-2 px-5">
