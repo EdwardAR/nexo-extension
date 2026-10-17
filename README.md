@@ -62,6 +62,10 @@ El botón `Bloquear` y el cierre de la última ventana limpian la sesión activa
 Las copias de seguridad exportadas están cifradas. Para restaurarlas se solicita la
 contraseña maestra y el archivo se valida antes de reemplazar la bóveda local.
 
+<p align="center">
+<img width="395" height="596" alt="image" src="https://github.com/user-attachments/assets/72cea756-aa6e-4b35-8abc-da164a62b139" />
+</p>
+
 ## Versionado
 
 Cada cambio solicitado incrementa la siguiente versión menor y mantiene sincronizados
