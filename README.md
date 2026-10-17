@@ -6,7 +6,7 @@ renovaciones, horarios internacionales y recordatorios.
 Versión actual: `1.9.0`
 
 <p align="center">
-<img width="401" height="600" alt="image" src="https://github.com/user-attachments/assets/aa9fbb56-0a3d-410c-a703-479fa4fd38c3" />
+<img width="395" height="600" alt="image" src="https://github.com/user-attachments/assets/25d1987f-ade2-46ca-9694-46f7c8b72e37" />
 </p>
 
 ## Funciones
