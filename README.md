@@ -64,6 +64,8 @@ contraseña maestra y el archivo se valida antes de reemplazar la bóveda local.
 
 <p align="center">
 <img width="395" height="596" alt="image" src="https://github.com/user-attachments/assets/72cea756-aa6e-4b35-8abc-da164a62b139" />
+<br>  
+<img width="397" height="596" alt="image" src="https://github.com/user-attachments/assets/9ea738bb-5194-4b54-ac5f-549e806d5996" />
 </p>
 
 ## Versionado
