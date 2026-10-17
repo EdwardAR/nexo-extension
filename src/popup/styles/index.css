@@ -7,7 +7,7 @@
     --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --type-brand-size: 1.0625rem;
     --type-title-size: 1.5rem;
-    --type-section-size: 0.9375rem;
+    --type-section-size: 1rem;
     --type-body-size: 0.875rem;
     --type-secondary-size: 0.75rem;
     --type-label-size: 0.6875rem;
@@ -155,10 +155,16 @@
   }
 
   .type-clock {
-    font-size: 1.375rem;
-    font-weight: 700;
-    line-height: 1;
+    font-size: 1.25rem;
+    font-weight: 650;
+    line-height: 1.1;
     letter-spacing: -0.04em;
+  }
+
+  .type-city {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25;
   }
 
   .icon-nav,
@@ -230,6 +236,39 @@
 
   .field-icon-top {
     @apply bottom-auto top-[34px];
+  }
+
+  .profile-field .field-icon {
+    top: 2.125rem;
+    bottom: auto;
+  }
+
+  .profile-field > span {
+    font-weight: 500;
+  }
+
+  .profile-help {
+    color: var(--text-secondary);
+  }
+
+  .zone-clock {
+    min-height: 92px;
+    height: 92px;
+    padding: 0.5rem;
+    border-radius: 1rem;
+  }
+
+  .zone-clock-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.125rem;
+  }
+
+  .zone-clock-date {
+    display: block;
+    margin-top: 0;
+    color: rgb(255 255 255 / 0.65);
   }
 
   .detail-row {

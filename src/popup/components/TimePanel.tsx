@@ -70,17 +70,15 @@ function ZoneClock({ city, country, zone, now, accent }: ZoneClockProps) {
   }).formatToParts(now).find((part) => part.type === 'timeZoneName')?.value, [now, zone])
 
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/10 p-3 text-white backdrop-blur">
+    <article className="zone-clock relative overflow-hidden border border-white/10 bg-white/10 text-white backdrop-blur">
       <span className={`absolute -right-4 -top-5 h-14 w-14 rounded-full ${accent} opacity-40 blur-xl`} />
-      <div className="type-secondary flex items-center justify-between text-white/70">
+      <strong className="type-clock block">{time}</strong>
+      <strong className="type-city block">{city}</strong>
+      <div className="zone-clock-meta type-secondary text-white/70">
         <span className="inline-flex items-center gap-1.5"><Globe2 className="icon-status" /> {country}</span>
         <span>{zoneName}</span>
       </div>
-      <strong className="type-clock mt-1 block">{time}</strong>
-      <div className="type-secondary mt-1.5 flex items-center justify-between">
-        <span className="font-semibold">{city}</span>
-        <span className="capitalize text-white/65">{date}</span>
-      </div>
+      <span className="zone-clock-date type-secondary capitalize">{date}</span>
     </article>
   )
 }
