@@ -5,6 +5,10 @@ renovaciones, horarios internacionales y recordatorios.
 
 Versión actual: `1.9.0`
 
+<p align="center">
+<img width="401" height="600" alt="image" src="https://github.com/user-attachments/assets/aa9fbb56-0a3d-410c-a703-479fa4fd38c3" />
+</p>
+
 ## Funciones
 
 - Bóveda local cifrada para guardar accesos y datos sensibles.
