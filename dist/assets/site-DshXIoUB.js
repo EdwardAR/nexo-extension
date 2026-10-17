@@ -1,0 +1,1 @@
+function e(t){try{return new URL(/^https?:\/\//i.test(t)?t:`https://${t}`).hostname.toLowerCase().replace(/^www\./,"")}catch{return t.replace(/^https?:\/\//i,"").split("/")[0].toLowerCase().replace(/^www\./,"")}}export{e as g};

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101b4f" />
+    <meta name="description" content="Nexo: extensión de navegador local para organizar contraseñas, autocompletar accesos y gestionar recordatorios." />
+    <title>Nexo — Tu centro digital local</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="#inicio" aria-label="Nexo, volver al inicio">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 128 128" role="img">
+              <defs>
+                <linearGradient id="brand-bg" x1="15" y1="9" x2="112" y2="119" gradientUnits="userSpaceOnUse"><stop stop-color="#172554" /><stop offset=".52" stop-color="#4338ca" /><stop offset="1" stop-color="#0891b2" /></linearGradient>
+                <linearGradient id="brand-orbit" x1="31" y1="30" x2="99" y2="101" gradientUnits="userSpaceOnUse"><stop stop-color="#fde68a" /><stop offset="1" stop-color="#67e8f9" /></linearGradient>
+              </defs>
+              <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#brand-bg)" />
+              <circle cx="64" cy="64" r="31" fill="none" stroke="url(#brand-orbit)" stroke-width="8" stroke-linecap="round" stroke-dasharray="137 58" transform="rotate(-34 64 64)" />
+              <circle cx="94" cy="38" r="7" fill="#fde68a" stroke="#fff" stroke-width="3" />
+              <path d="M46 81V47l36 34V47" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="64" cy="64" r="5" fill="#fff" />
+            </svg>
+          </span>
+          <span>Nexo</span>
+        </a>
+        <nav class="site-nav" aria-label="Navegación principal">
+          <a href="#funciones">Funciones</a>
+          <a href="#seguridad">Seguridad</a>
+          <a href="#instalacion">Instalación</a>
+          <a href="#compatibilidad">Compatibilidad</a>
+        </nav>
+        <a class="header-link" href="https://github.com/EdwardAR/nexo-extension" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+      </div>
+    </header>
+
+    <main id="inicio">
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow"><span></span> CENTRO DIGITAL LOCAL</p>
+            <h1>Tu acceso diario,<br /><em>más simple y seguro.</em></h1>
+            <p class="hero-text">Nexo es una extensión para organizar tus accesos, autocompletar formularios y recibir recordatorios sin depender de una cuenta remota.</p>
+            <div class="hero-actions"><a class="button button-primary" href="#instalacion">Cómo instalar</a><a class="button button-secondary" href="https://github.com/EdwardAR/nexo-extension" target="_blank" rel="noreferrer">Ver repositorio <span aria-hidden="true">↗</span></a></div>
+            <div class="hero-note"><span class="status-dot"></span> Código fuente disponible en GitHub · v1.10.0</div>
+          </div>
+          <div class="hero-preview" aria-label="Vista previa de la interfaz de Nexo">
+            <div class="glow glow-one"></div><div class="glow glow-two"></div>
+            <div class="mock-window">
+              <div class="mock-topbar"><span></span><span></span><span></span><small>nexo · bóveda local</small></div>
+              <div class="mock-content">
+                <div class="mock-brand"><span class="mock-brand-icon">N</span><span>Nexo</span><b>⋯</b></div>
+                <div class="mock-greeting"><small>TU CENTRO DIGITAL</small><h2>Hola, usuario</h2><p>Todo en orden. Tu bóveda está protegida.</p></div>
+                <div class="mock-stats"><div><strong>12</strong><span>Accesos</span></div><div><strong>03</strong><span>Renovaciones</span></div></div>
+                <div class="mock-card"><span class="mock-site-icon">G</span><div><strong>google.com</strong><small>usuario local</small></div><span class="mock-chevron">›</span></div>
+                <div class="mock-card"><span class="mock-site-icon purple">N</span><div><strong>github.com</strong><small>usuario local</small></div><span class="mock-chevron">›</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="trust-strip" aria-label="Características principales"><div class="container trust-grid"><div><strong>Local-first</strong><span>Tus datos permanecen en tu navegador</span></div><div><strong>Web Crypto API</strong><span>Bóveda cifrada con tecnología nativa</span></div><div><strong>Manifest V3</strong><span>Construida para navegadores Chromium</span></div></div></section>
+
+      <section class="section" id="funciones">
+        <div class="container">
+          <div class="section-heading"><p class="eyebrow">TODO EN UN SOLO LUGAR</p><h2>Una herramienta pequeña<br />para tareas importantes.</h2><p>Accede a lo que necesitas desde el popup del navegador, con una interfaz limpia y directa.</p></div>
+          <div class="feature-grid">
+            <article class="feature-card feature-card-large"><span class="feature-icon violet">⌘</span><h3>Bóveda cifrada</h3><p>Guarda accesos y datos sensibles en una bóveda local protegida por tu contraseña maestra.</p><a href="#seguridad">Conoce el enfoque de seguridad <span aria-hidden="true">→</span></a></article>
+            <article class="feature-card"><span class="feature-icon blue">↗</span><h3>Autocompletado</h3><p>Completa formularios compatibles sin copiar y pegar cada dato.</p></article>
+            <article class="feature-card"><span class="feature-icon cyan">◷</span><h3>Horarios y alertas</h3><p>Consulta Lima y Madrid y programa recordatorios para tus renovaciones.</p></article>
+            <article class="feature-card"><span class="feature-icon amber">↻</span><h3>Renovaciones</h3><p>Registra fechas de cambio y recibe avisos antes de que un acceso venza.</p></article>
+            <article class="feature-card"><span class="feature-icon green">✓</span><h3>Perfil local</h3><p>Personaliza el saludo con un nombre o alias, sin crear una cuenta.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-dark" id="seguridad"><div class="container security-grid"><div class="section-heading light"><p class="eyebrow">DISEÑADA CON PRIVACIDAD</p><h2>Tu contraseña maestra<br /><em>no sale de la sesión.</em></h2><p>Nexo no necesita una cuenta para funcionar. La bóveda se cifra localmente y la contraseña maestra solo se mantiene en la sesión activa mientras la bóveda está desbloqueada.</p></div><div class="security-list"><div class="security-item"><span>01</span><div><h3>Cifrado local</h3><p>Los datos de la bóveda se protegen mediante Web Crypto API.</p></div></div><div class="security-item"><span>02</span><div><h3>Sin autenticación remota</h3><p>El alias es solo local. No hay cuentas ni sincronización con un servidor.</p></div></div><div class="security-item"><span>03</span><div><h3>Sesión controlada</h3><p>Bloquea la bóveda cuando quieras y se limpia al cerrar la última ventana de Chrome.</p></div></div></div></div></section>
+
+      <section class="section" id="instalacion"><div class="container install-grid"><div class="section-heading"><p class="eyebrow">EMPIEZA EN MINUTOS</p><h2>Instala Nexo<br />desde el código fuente.</h2><p>Nexo todavía se prueba como extensión sin empaquetar. Puedes revisar el código y generar tu propia copia local.</p></div><ol class="steps"><li><span>1</span><div><h3>Clona o descarga</h3><p>Obtén el repositorio desde GitHub e instala Node.js LTS.</p></div></li><li><span>2</span><div><h3>Genera la extensión</h3><pre><code>npm install &amp;&amp; npm run build</code></pre></div></li><li><span>3</span><div><h3>Carga la carpeta dist/</h3><p>Abre <code>chrome://extensions/</code>, activa Modo desarrollador y elige <strong>Cargar descomprimida</strong>.</p></div></li></ol></div></section>
+
+      <section class="section compatibility-section" id="compatibilidad"><div class="container compatibility-grid"><div class="section-heading"><p class="eyebrow">COMPATIBILIDAD</p><h2>Creada para<br />navegadores Chromium.</h2><p>Chrome es el entorno principal de desarrollo. Otros navegadores Chromium pueden funcionar, pero conviene validarlos por versión.</p></div><div class="browser-list"><div class="browser-row"><span class="browser-mark chrome">C</span><div><strong>Google Chrome</strong><small>Objetivo principal · carga local probada</small></div><b class="tag tag-green">Principal</b></div><div class="browser-row"><span class="browser-mark edge">E</span><div><strong>Microsoft Edge</strong><small>Compatibilidad esperada · Chromium + MV3</small></div><b class="tag tag-blue">Esperada</b></div><div class="browser-row"><span class="browser-mark other">B</span><div><strong>Brave, Vivaldi y Opera</strong><small>Compatibilidad esperada · requiere validación manual</small></div><b class="tag tag-blue">Esperada</b></div><div class="browser-row muted"><span class="browser-mark muted-mark">—</span><div><strong>Firefox y Safari</strong><small>No declarados compatibles actualmente</small></div><b class="tag tag-gray">No disponible</b></div></div></div></section>
+
+      <section class="cta-section"><div class="container cta-inner"><div><p class="eyebrow">NEXO · V1.10.0</p><h2>Tu bóveda, bajo tu control.</h2></div><a class="button button-light" href="https://github.com/EdwardAR/nexo-extension" target="_blank" rel="noreferrer">Explorar en GitHub <span aria-hidden="true">↗</span></a></div></section>
+    </main>
+    <footer class="site-footer"><div class="container footer-inner"><span>© 2026 Nexo · Extensión local para navegador</span><span><a href="https://github.com/EdwardAR/nexo-extension" target="_blank" rel="noreferrer">GitHub</a><a href="#seguridad">Privacidad</a></span></div></footer>
+  </body>
+</html>

@@ -1,1 +1,12 @@
 node_modules/
+.axet-code/
+.env
+.env.*
+!.env.example
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+coverage/
+.DS_Store

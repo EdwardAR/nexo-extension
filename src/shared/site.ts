@@ -11,7 +11,3 @@ export function getHostname(site: string) {
       .replace(/^www\./, '')
   }
 }
-
-export function getFaviconUrl(site: string) {
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(getHostname(site))}&sz=64`
-}

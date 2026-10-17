@@ -1,6 +1,6 @@
 import { Copy, ChevronRight } from 'lucide-react'
 import type { PasswordEntry } from '../types'
-import { getFaviconUrl, getHostname } from '../../shared/site'
+import { getHostname } from '../../shared/site'
 import { IconButton } from './IconButton'
 
 interface PasswordCardProps {
@@ -21,12 +21,6 @@ export function PasswordCard({ entry, onView, onCopy }: PasswordCardProps) {
           <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-vault-500 to-vault-700 text-sm font-bold text-white">
             {initial}
           </span>
-          <img
-            src={getFaviconUrl(entry.site)}
-            alt=""
-            className="relative h-6 w-6"
-            onError={(event) => { event.currentTarget.style.display = 'none' }}
-          />
         </div>
 
         <button
