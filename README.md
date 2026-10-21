@@ -39,9 +39,14 @@ cifrada.
 <p align="center">
 <img width="398" height="600" alt="image" src="https://github.com/user-attachments/assets/fd4c01fd-cefa-49a2-b06b-9cdf698843db" />
 <br>
-<img width="397" height="600" alt="image" src="https://github.com/user-attachments/assets/3c3b5fcc-120f-417b-9531-12076a9ecac7" />
+<img width="397" height="602" alt="image" src="https://github.com/user-attachments/assets/380ef686-a725-42dc-8239-772ccaff46e1" />
 <br>
 <img width="270" height="54" alt="image" src="https://github.com/user-attachments/assets/52c7ea78-ebf7-421c-a665-3481bb2f8855" />
+<br>
+<img width="398" height="599" alt="image" src="https://github.com/user-attachments/assets/cca4f2cf-324e-469f-9df5-c5bedce6a9f8" />
+<br>
+<img width="270" height="54" alt="image" src="https://github.com/user-attachments/assets/bd7d8e88-3912-431d-891d-3801bc46b434" />
+
 </p>
 
   
