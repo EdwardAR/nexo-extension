@@ -35,6 +35,17 @@ cifrada.
 - La extensión solicita permisos amplios de página para detectar formularios y
   ofrecer autocompletado. Revisa los permisos antes de instalar una copia de prueba.
 
+
+<p align="center">
+<img width="398" height="600" alt="image" src="https://github.com/user-attachments/assets/fd4c01fd-cefa-49a2-b06b-9cdf698843db" />
+<br>
+<img width="397" height="600" alt="image" src="https://github.com/user-attachments/assets/3c3b5fcc-120f-417b-9531-12076a9ecac7" />
+<br>
+<img width="270" height="54" alt="image" src="https://github.com/user-attachments/assets/52c7ea78-ebf7-421c-a665-3481bb2f8855" />
+</p>
+
+  
+
 ## Compatibilidad
 
 Nexo usa Chrome Manifest V3 y APIs de extensiones Chromium.
