@@ -14,6 +14,7 @@ import {
   zonedInputToTimestamp,
   type ScheduledReminder,
 } from '../shared/reminder'
+import { getTimeZoneConfig, isReminderTimeZone } from '../shared/timezones'
 
 const RENEWAL_ALARM = 'checkRenewals'
 const NOTIFICATION_ID = 'password-renewal-reminder'
@@ -179,7 +180,7 @@ async function saveReminder(candidate: unknown) {
     typeof value.enabled !== 'boolean' ||
     typeof value.createdAt !== 'number' ||
     (value.scheduledLocalTime !== undefined && typeof value.scheduledLocalTime !== 'string') ||
-    (value.timeZone !== undefined && value.timeZone !== 'America/Lima' && value.timeZone !== 'Europe/Madrid') ||
+    (value.timeZone !== undefined && !isReminderTimeZone(value.timeZone)) ||
     !value.title.trim() ||
     !Number.isFinite(value.scheduledAt)
   ) return { success: false, error: 'El recordatorio no es válido' }
@@ -288,7 +289,7 @@ async function deliverReminder(id: string) {
         iconUrl: 'public/icons/icon128.png',
         title: reminder.title,
         message: reminder.message || 'Tienes un recordatorio programado en Nexo.',
-        contextMessage: reminder.timeZone === 'Europe/Madrid' ? 'Horario de España' : 'Horario de Perú',
+        contextMessage: `Horario de ${getTimeZoneConfig(reminder.timeZone || 'America/Lima')?.country || 'Perú'}`,
         priority: 2,
         requireInteraction: true,
         silent: false,

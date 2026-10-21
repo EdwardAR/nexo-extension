@@ -1,5 +1,21 @@
+import {
+  TIME_ZONE_CONFIGS,
+  type ReminderTimeZone,
+} from './timezones'
+
 export const FLOATING_CLOCK_ENABLED_KEY = 'floating_clock_enabled'
 export const FLOATING_CLOCK_POSITION_KEY = 'floating_clock_position'
+export const FLOATING_CLOCK_SETTINGS_KEY = 'floating_clock_settings'
+
+export interface FloatingClockSettings {
+  cities: ReminderTimeZone[]
+  primary: ReminderTimeZone
+}
+
+export const DEFAULT_FLOATING_CLOCK_SETTINGS: FloatingClockSettings = {
+  cities: ['Europe/Madrid', 'America/Lima'],
+  primary: 'Europe/Madrid',
+}
 
 export interface FloatingClockPosition {
   x: number
@@ -15,6 +31,34 @@ export async function isFloatingClockEnabled() {
 
 export async function setFloatingClockEnabled(enabled: boolean) {
   await chrome.storage.local.set({ [FLOATING_CLOCK_ENABLED_KEY]: enabled })
+}
+
+function isTimeZone(value: unknown): value is ReminderTimeZone {
+  return TIME_ZONE_CONFIGS.some((zone) => zone.id === value)
+}
+
+function normalizeFloatingClockSettings(value: unknown): FloatingClockSettings {
+  if (!value || typeof value !== 'object') return { ...DEFAULT_FLOATING_CLOCK_SETTINGS, cities: [...DEFAULT_FLOATING_CLOCK_SETTINGS.cities] }
+  const candidate = value as Partial<FloatingClockSettings>
+  const cities = Array.isArray(candidate.cities)
+    ? candidate.cities.filter(isTimeZone).filter((city, index, all) => all.indexOf(city) === index).slice(0, TIME_ZONE_CONFIGS.length)
+    : []
+  const safeCities = cities.length > 0 ? cities : [...DEFAULT_FLOATING_CLOCK_SETTINGS.cities]
+  const primary = isTimeZone(candidate.primary) && safeCities.includes(candidate.primary)
+    ? candidate.primary
+    : safeCities[0]
+  return { cities: safeCities, primary }
+}
+
+export async function loadFloatingClockSettings(): Promise<FloatingClockSettings> {
+  const result = await chrome.storage.local.get(FLOATING_CLOCK_SETTINGS_KEY)
+  return normalizeFloatingClockSettings(result[FLOATING_CLOCK_SETTINGS_KEY])
+}
+
+export async function saveFloatingClockSettings(settings: FloatingClockSettings): Promise<FloatingClockSettings> {
+  const normalized = normalizeFloatingClockSettings(settings)
+  await chrome.storage.local.set({ [FLOATING_CLOCK_SETTINGS_KEY]: normalized })
+  return normalized
 }
 
 export async function loadFloatingClockPosition(): Promise<FloatingClockPosition | null> {

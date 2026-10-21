@@ -1,7 +1,8 @@
 export const REMINDERS_KEY = 'scheduled_reminders'
 export const REMINDER_ALARM_PREFIX = 'nexo-reminder:'
 
-export type ReminderTimeZone = 'America/Lima' | 'Europe/Madrid'
+export type { ReminderTimeZone } from './timezones'
+import type { ReminderTimeZone } from './timezones'
 
 export interface ScheduledReminder {
   id: string

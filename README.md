@@ -4,7 +4,7 @@ Nexo es una extensión de navegador centrada en la privacidad para organizar
 contraseñas, autocompletar accesos y recibir recordatorios desde una bóveda local
 cifrada.
 
-> La versión actual es `1.10.0`. Nexo está en desarrollo y todavía no se distribuye
+> La versión actual es `1.16.0`. Nexo está en desarrollo y todavía no se distribuye
 > desde Chrome Web Store.
 
 <p align="center">
@@ -18,7 +18,8 @@ cifrada.
 - Perfil local con nombre o alias y saludo personalizado.
 - Autocompletado de credenciales en páginas compatibles.
 - Renovaciones y borradores cifrados para reducir la pérdida accidental de datos.
-- Horarios de Lima y Madrid, reloj flotante y recordatorios configurables.
+- Horarios de Lima, Madrid y Casablanca, reloj flotante y recordatorios configurables.
+- Reloj flotante configurable con una, dos o tres ciudades y ciudad principal elegible.
 - Notificaciones de Chrome y anuncio por voz cuando el navegador lo permite.
 - Importación y exportación de copias de seguridad cifradas.
 
@@ -109,7 +110,7 @@ repositorio sea público y GitHub Pages esté habilitado.
 
 Cada cambio solicitado incrementa la siguiente versión menor y mantiene sincronizados
 `package.json`, `package-lock.json` y `manifest.json`. Esta actualización pasa de
-`1.9.0` a `1.10.0`; el siguiente cambio será `1.11.0`.
+`1.15.0` a `1.16.0`; el siguiente cambio será `1.17.0`.
 
 ## Tecnología
 
