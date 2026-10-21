@@ -39,11 +39,15 @@ function createAutofillButton(passwordInput: HTMLInputElement): HTMLElement {
 
   const btn = document.createElement('button')
   btn.className = 'pv-autofill-btn'
-  btn.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    </svg>
-  `
+  btn.type = 'button'
+  btn.setAttribute('aria-label', 'Autocompletar con Nexo')
+  const icon = document.createElement('img')
+  icon.src = chrome.runtime.getURL('public/icons/icon-source.svg')
+  icon.alt = ''
+  icon.width = 20
+  icon.height = 20
+  icon.setAttribute('aria-hidden', 'true')
+  btn.appendChild(icon)
   btn.title = 'Nexo - Autocompletar'
   btn.addEventListener('click', (e) => {
     e.preventDefault()
@@ -154,20 +158,29 @@ function injectStyles() {
       margin: 0 !important;
       border: none !important;
       border-radius: 6px !important;
-      background: #6366f1 !important;
-      color: white !important;
+      background: transparent !important;
       cursor: pointer !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       z-index: 2147483647 !important;
-      opacity: 0.9 !important;
-      transition: opacity 0.15s ease !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+      opacity: 0.96 !important;
+      transition: opacity 0.15s ease, transform 0.15s ease !important;
     }
     .pv-autofill-btn:hover {
       opacity: 1 !important;
-      background: #4f46e5 !important;
+      transform: translateY(-50%) scale(1.05) !important;
+    }
+    .pv-autofill-btn:focus-visible {
+      outline: 2px solid #818cf8 !important;
+      outline-offset: 2px !important;
+    }
+    .pv-autofill-btn img {
+      display: block !important;
+      width: 20px !important;
+      height: 20px !important;
+      border-radius: 5px !important;
+      pointer-events: none !important;
     }
     .pv-suggestions {
       position: fixed !important;

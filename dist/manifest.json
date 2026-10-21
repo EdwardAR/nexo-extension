@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Nexo",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "description": "Tu centro digital para contraseñas y alertas",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
@@ -33,7 +33,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/autofill.ts-loader-IH2kahN6.js"
+        "assets/autofill.ts-loader-CI2jIOuv.js"
       ],
       "matches": [
         "<all_urls>"
@@ -46,22 +46,23 @@
       "match_about_blank": true
     }
   ],
-  "icons": {
-    "16": "public/icons/icon16.png",
-    "48": "public/icons/icon48.png",
-    "128": "public/icons/icon128.png"
-  },
   "web_accessible_resources": [
     {
       "matches": [
         "<all_urls>"
       ],
       "resources": [
+        "public/icons/icon-source.svg",
         "assets/floating-clock-CeoaKat2.js",
         "assets/timezones-vgLoi8w3.js",
-        "assets/autofill.ts-BLBVR6pQ.js"
+        "assets/autofill.ts-DOe-aI5U.js"
       ],
       "use_dynamic_url": false
     }
-  ]
+  ],
+  "icons": {
+    "16": "public/icons/icon16.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
+  }
 }
