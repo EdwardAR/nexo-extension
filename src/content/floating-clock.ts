@@ -23,6 +23,7 @@ const DEFAULT_CLOCK_SIZE = { width: 260, height: 76 }
 
 interface ClockZoneFormatters {
   time: Intl.DateTimeFormat
+  date: Intl.DateTimeFormat
   zone: Intl.DateTimeFormat
   offset: Intl.DateTimeFormat
 }
@@ -67,6 +68,11 @@ function getClockFormatters(): ClockFormatters {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
+    }),
+    date: new Intl.DateTimeFormat(zone.locale, {
+      timeZone: zone.timeZone,
+      day: '2-digit',
+      month: 'short',
     }),
     zone: new Intl.DateTimeFormat('en-GB', {
       timeZone: zone.timeZone,
@@ -184,6 +190,11 @@ function getTimeZoneOffset(now: Date, formatter: Intl.DateTimeFormat) {
   return Math.round((zonedAsUtc - Math.floor(now.getTime() / 1000) * 1000) / 3_600_000)
 }
 
+function formatDate(formatter: Intl.DateTimeFormat, now: Date) {
+  const value = formatter.format(now).replace(/\./g, '')
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
 function formatDifference(
   now: Date,
   zone: TimeZoneConfig,
@@ -205,7 +216,7 @@ function cityBlockMarkup(zone: TimeZoneConfig) {
   return `<article class="city-block" data-zone-id="${zone.id}" aria-label="Hora de ${zone.city}">
     <div class="city-line">${globeMarkup()}<span class="city-name">${zone.city}</span><span class="zone-pill" data-zone-label>--</span></div>
     <strong class="city-time" data-time>--:--</strong>
-    <span class="difference" data-difference>Referencia</span>
+    <span class="city-context" data-context><span data-date>--</span><span aria-hidden="true">·</span><span data-difference>Referencia</span></span>
   </article>`
 }
 
@@ -270,14 +281,14 @@ async function showFloatingClock() {
       .menu-wrap{position:relative;display:flex;align-items:center}.menu-btn{display:flex;align-items:center;justify-content:center;width:34px;height:32px;border:0;border-radius:8px;background:transparent;padding:0;color:#94a3b8;font:700 12px/1 Inter,ui-sans-serif,system-ui;cursor:pointer;flex-shrink:0}.menu-btn:hover,.menu-btn[aria-expanded="true"]{background:rgba(255,255,255,.09);color:#fff}.menu-btn:focus-visible,.city-toggle:focus-visible,.primary-label select:focus-visible,.close-btn:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}.menu-icon{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
       .menu{position:absolute;right:0;top:30px;display:none;width:185px;border:1px solid rgba(148,163,184,.28);border-radius:11px;background:#0e1836;padding:9px;box-shadow:0 12px 28px rgba(2,6,23,.55);z-index:3}.menu.open{display:block}.menu-label,.primary-label>span{display:block;color:#cbd5e1;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.city-options{display:grid;gap:4px;margin-top:6px}.city-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:1px solid transparent;border-radius:7px;background:transparent;padding:7px 8px;color:#aab6d2;font:600 10px Inter,ui-sans-serif,system-ui;text-align:left;cursor:pointer}.city-toggle:hover{background:rgba(255,255,255,.07);color:#fff}.city-toggle.selected{border-color:rgba(103,232,249,.2);background:rgba(56,189,248,.12);color:#fff}.city-toggle-state{color:#64748b;font-size:8px;font-weight:700}.city-toggle.selected .city-toggle-state{color:#67e8f9}.primary-label{display:block;margin-top:10px}.primary-label select{width:100%;margin-top:5px;border:1px solid rgba(148,163,184,.24);border-radius:7px;background:#111d43;padding:7px 8px;color:#fff;font:600 10px Inter,ui-sans-serif,system-ui;cursor:pointer}.close-btn{width:100%;margin-top:9px;border:1px solid rgba(248,113,113,.16);border-radius:7px;background:transparent;padding:7px 8px;color:#fca5a5;font:600 10px Inter,ui-sans-serif,system-ui;text-align:left;cursor:pointer}.close-btn:hover{background:rgba(239,68,68,.12)}
       @media (max-width:360px){.clock[data-count="3"]{min-height:128px}.clock[data-count="3"] .clock-grid{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:6px}.clock[data-count="3"] .city-block:last-child{grid-column:1/-1;width:50%;justify-self:center;border-top:1px solid rgba(148,163,184,.18);border-left:0;padding-top:6px}}
-      .clock{height:auto;min-height:0;overflow:hidden;padding:4px 6px 5px;border-radius:8px;box-shadow:0 2px 8px rgba(2,6,23,.25),inset 0 1px 0 rgba(255,255,255,.06)}
-      .clock-toolbar{position:relative;display:flex;align-items:center;justify-content:flex-start;height:10px;margin:0 0 2px;padding:0}.live-label{gap:3px;font-size:7px;line-height:1}.live{width:5px;height:5px}
+      .clock{height:auto;max-height:62px;min-height:0;overflow:hidden;padding:3px 6px 4px;border-radius:8px;box-shadow:0 2px 8px rgba(2,6,23,.25),inset 0 1px 0 rgba(255,255,255,.06)}
+      .clock-toolbar{position:relative;display:flex;align-items:center;justify-content:flex-start;height:10px;margin:0 0 1px;padding:0}.live-label{gap:3px;font-size:7px;line-height:1}.live{width:5px;height:5px}
       .clock-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:0;height:auto;padding:0}.clock[data-count="1"] .clock-grid{grid-template-columns:minmax(0,1fr)}.clock[data-count="3"] .clock-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .city-block{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0;min-width:0;padding:0 6px;text-align:center}.city-block+.city-block{border-left:1px solid rgba(148,163,184,.16)}
-      .city-line{display:flex;align-items:center;justify-content:center;gap:2px;min-width:0;margin:0;color:#cbd5e1;font-size:9px;font-weight:700;line-height:1;white-space:nowrap}.city-name{min-width:0;white-space:nowrap}.clock-globe{width:8px;height:8px}.zone-pill{border-radius:3px;padding:1px 2px;font-size:7px;line-height:1}.city-time{display:block;margin:1px 0;color:#fff;font-size:16px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.035em;white-space:nowrap}.difference{display:block;min-width:0;margin:0;color:#a5b4fc;font-size:8px;font-weight:600;line-height:1;white-space:nowrap}.clock[data-count="3"] .city-time{font-size:16px}.clock[data-count="3"] .city-block{padding:0 5px}.clock[data-count="3"] .difference{font-size:8px}
-      .menu-wrap{position:absolute;top:-7px;right:0;width:24px;height:24px}.menu-btn{width:24px;height:24px}.menu-icon{width:12px;height:12px}
+      .city-block{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0;min-width:0;padding:0 5px;text-align:center}.city-block+.city-block{border-left:0}.city-block+.city-block::before{position:absolute;top:50%;left:0;width:1px;height:31px;background:rgba(186,230,253,.2);content:"";transform:translateY(-50%)}
+      .city-line{display:flex;align-items:center;justify-content:center;gap:2px;min-width:0;margin:0;color:#cbd5e1;font-size:9px;font-weight:700;line-height:1;white-space:nowrap}.city-name{min-width:0;white-space:nowrap}.clock-globe{width:8px;height:8px}.zone-pill{border-radius:3px;padding:1px 2px;font-size:7px;line-height:1}.city-time{display:block;margin:1px 0 0;color:#fff;font-size:16px;font-weight:700;line-height:.95;font-variant-numeric:tabular-nums;letter-spacing:-.035em;white-space:nowrap}.city-context{display:flex;align-items:center;justify-content:center;gap:3px;min-width:0;margin-top:1px;color:#a5b4fc;font-size:8px;font-weight:600;line-height:1;white-space:nowrap}.city-context [data-date]{color:#94a3b8}.city-context [data-difference]{color:inherit}.clock[data-count="3"] .city-time{font-size:16px}.clock[data-count="3"] .city-block{padding:0 5px}.clock[data-count="3"] .city-context{font-size:7.5px}
+      .menu-wrap{position:absolute;top:-7px;right:0;width:24px;height:24px}.menu-btn{width:24px;height:24px}.menu-icon{width:11px;height:11px}
       .menu{top:26px}
-      @media (max-width:360px){.clock[data-count="3"]{height:auto;min-height:0}.clock[data-count="3"] .clock-grid{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:0}.clock[data-count="3"] .city-block:last-child{grid-column:auto;width:auto;border-top:0;border-left:1px solid rgba(148,163,184,.16);padding-top:0}}
+      @media (max-width:360px){.clock[data-count="3"]{height:auto;max-height:62px;min-height:0}.clock[data-count="3"] .clock-grid{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:0}.clock[data-count="3"] .city-block:last-child{grid-column:auto;width:auto;border-top:0;border-left:0;padding-top:0}.clock[data-count="3"] .city-block:last-child::before{display:block}}
     </style>
     <section class="clock" data-count="${visibleZones.length}" aria-label="Reloj flotante de ${visibleZones.map((zone) => zone.city).join(', ')}">
       <div class="clock-toolbar"><span class="live-label"><i class="live"></i> En vivo</span><div class="menu-wrap"><button class="menu-btn" type="button" aria-label="Configurar reloj flotante" title="Configurar reloj flotante" aria-expanded="false"><svg class="menu-icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>${settingsMenuMarkup(settings)}</div></div>
@@ -309,9 +320,11 @@ async function showFloatingClock() {
       if (!block) return
       const zoneFormatters = formatters.zones[zone.id]
       const time = block.querySelector<HTMLElement>('[data-time]')
+      const date = block.querySelector<HTMLElement>('[data-date]')
       const zoneLabel = block.querySelector<HTMLElement>('[data-zone-label]')
       const difference = block.querySelector<HTMLElement>('[data-difference]')
       if (time) time.textContent = zoneFormatters.time.format(now)
+      if (date) date.textContent = formatDate(zoneFormatters.date, now)
       if (zoneLabel) zoneLabel.textContent = zoneFormatters.zone.formatToParts(now).find((part) => part.type === 'timeZoneName')?.value || zone.city
       if (difference) difference.textContent = formatDifference(now, zone, primary, formatters)
     })
