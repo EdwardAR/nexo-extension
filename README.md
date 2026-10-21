@@ -46,7 +46,8 @@ cifrada.
 <img width="398" height="599" alt="image" src="https://github.com/user-attachments/assets/cca4f2cf-324e-469f-9df5-c5bedce6a9f8" />
 <br>
 <img width="270" height="54" alt="image" src="https://github.com/user-attachments/assets/bd7d8e88-3912-431d-891d-3801bc46b434" />
-
+<br>
+<img width="398" height="597" alt="image" src="https://github.com/user-attachments/assets/a4da7c89-4e6b-41ac-a2f6-18fae6a955b1" />
 </p>
 
   
