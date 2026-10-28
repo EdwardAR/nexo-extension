@@ -4,7 +4,7 @@ Nexo es una extensión de navegador centrada en la privacidad para organizar
 contraseñas, autocompletar accesos y recibir recordatorios desde una bóveda local
 cifrada.
 
-> La versión actual es `1.20.0`. Nexo está en desarrollo y todavía no se distribuye
+> La versión actual es `1.22.0`. Nexo está en desarrollo y todavía no se distribuye
 > desde Chrome Web Store.
 
 <p align="center">
@@ -127,7 +127,7 @@ repositorio sea público y GitHub Pages esté habilitado.
 
 Cada cambio solicitado incrementa la siguiente versión menor y mantiene sincronizados
 `package.json`, `package-lock.json` y `manifest.json`. Esta actualización pasa de
-`1.19.0` a `1.20.0`; el siguiente cambio será `1.21.0`.
+`1.21.0` a `1.22.0`; el siguiente cambio será `1.23.0`.
 
 ## Tecnología
 
