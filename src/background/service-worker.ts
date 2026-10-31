@@ -9,7 +9,6 @@ import { clearVaultSession, getVaultSession } from '../shared/vault-session'
 import {
   loadReminders,
   REMINDER_ALARM_PREFIX,
-  REMINDERS_KEY,
   saveReminders,
   zonedInputToTimestamp,
   type ScheduledReminder,
@@ -21,7 +20,18 @@ const NOTIFICATION_ID = 'password-renewal-reminder'
 const REMINDER_WATCHDOG_ALARM = 'nexo-reminder-watchdog'
 
 const reminderDeliveryInFlight = new Set<string>()
-let reminderSchedulerInitialization: Promise<void> | null = null
+let reminderOperationQueue: Promise<void> = Promise.resolve()
+
+function enqueueReminderOperation<T>(operation: () => Promise<T>): Promise<T> {
+  const result = reminderOperationQueue
+    .catch(() => undefined)
+    .then(operation)
+  reminderOperationQueue = result.then(
+    () => undefined,
+    () => undefined,
+  )
+  return result
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Nexo installed')
@@ -35,7 +45,7 @@ chrome.runtime.onStartup.addListener(() => {
 })
 
 chrome.windows.onRemoved.addListener(async (windowId) => {
-  await reopenUnacknowledgedAlarmWindow(windowId)
+  await enqueueReminderOperation(() => reopenUnacknowledgedAlarmWindow(windowId))
   const openWindows = await chrome.windows.getAll()
   if (openWindows.length === 0) await clearVaultSession()
 })
@@ -60,19 +70,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         }
 
       case 'SAVE_REMINDER':
-        return saveReminder(message.reminder)
+        return enqueueReminderOperation(() => saveReminder(message.reminder))
 
       case 'DELETE_REMINDER':
-        return deleteReminder(message.id)
+        return enqueueReminderOperation(() => deleteReminder(message.id))
 
       case 'TEST_REMINDER_NOTIFICATION':
         return testReminderNotification()
 
       case 'ACKNOWLEDGE_REMINDER':
-        return acknowledgeReminder(message.id)
+        return enqueueReminderOperation(() => acknowledgeReminder(message.id))
 
       case 'SYNC_REMINDER_ALARMS':
-        await initializeReminderScheduler()
+        await enqueueReminderOperation(initializeReminderScheduler)
         return { success: true }
 
       default:
@@ -90,9 +100,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === RENEWAL_ALARM) void checkRenewals()
   if (alarm.name.startsWith(REMINDER_ALARM_PREFIX)) {
-    void showReminder(alarm.name.slice(REMINDER_ALARM_PREFIX.length))
+    void enqueueReminderOperation(
+      () => showReminder(alarm.name.slice(REMINDER_ALARM_PREFIX.length)),
+    )
   }
-  if (alarm.name === REMINDER_WATCHDOG_ALARM) void checkDueReminders()
+  if (alarm.name === REMINDER_WATCHDOG_ALARM) {
+    void enqueueReminderOperation(checkDueReminders)
+  }
 })
 
 chrome.notifications.onClicked.addListener((notificationId) => {
@@ -103,7 +117,9 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 
 chrome.notifications.onButtonClicked.addListener((notificationId) => {
   if (notificationId.startsWith(REMINDER_ALARM_PREFIX)) {
-    void acknowledgeReminder(notificationId.slice(REMINDER_ALARM_PREFIX.length))
+    void enqueueReminderOperation(
+      () => acknowledgeReminder(notificationId.slice(REMINDER_ALARM_PREFIX.length)),
+    )
   }
 })
 
@@ -144,18 +160,13 @@ async function ensureReminderWatchdog() {
 }
 
 async function initializeReminderScheduler() {
-  reminderSchedulerInitialization ??= (async () => {
-    await ensureReminderWatchdog()
-    await restoreReminderAlarms()
-    await checkDueReminders()
-  })().finally(() => {
-    reminderSchedulerInitialization = null
-  })
-  return reminderSchedulerInitialization
+  await ensureReminderWatchdog()
+  await restoreReminderAlarms()
+  await checkDueReminders()
 }
 
 function scheduleReminderInitialization() {
-  void initializeReminderScheduler().catch(() => undefined)
+  void enqueueReminderOperation(initializeReminderScheduler).catch(() => undefined)
 }
 
 async function checkDueReminders() {
@@ -473,9 +484,6 @@ async function testReminderNotification() {
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && RENEWAL_SCHEDULE_KEY in changes) {
     void checkRenewals()
-  }
-  if (areaName === 'local' && REMINDERS_KEY in changes) {
-    scheduleReminderInitialization()
   }
 })
 
